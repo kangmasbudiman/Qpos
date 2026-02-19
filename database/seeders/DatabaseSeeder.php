@@ -30,18 +30,46 @@ class DatabaseSeeder extends Seeder
             'is_active' => true,
         ]);
 
-        // Create merchant
-$merchant=  Merchant::create([
-    'name' => 'My POS Business',
-    'company_code' => 'POS001',
-    'business_type' => 'Retail',
-    'address' => 'Jl. Merdeka No. 123, Jakarta',
-    'phone' => '021-12345678',
-    'email' => 'info@posbusiness.com',
-    'owner_user_id' => 1,
-    'is_active' => 1,
-]);
 
+            // Create Owner User
+    $owner = \App\Models\User::create([
+        'name' => 'Owner',
+        'email' => 'owner@pos.com',
+        'password' => \Illuminate\Support\Facades\Hash::make('123456'),
+    ]);
+
+    // Create Merchant
+    $merchant = \App\Models\Merchant::create([
+        'name' => 'My POS Business',
+        'company_code' => 'POS001',
+        'business_type' => 'Retail',
+        'address' => 'Jl. Merdeka No. 123',
+        'phone' => '021-12345678',
+        'email' => 'info@posbusiness.com',
+        'owner_user_id' => $owner->id,
+        'is_active' => 1,
+    ]);
+
+    // Update owner with merchant_id
+    $owner->update([
+        'merchant_id' => $merchant->id
+    ]);
+
+    // Create Branch
+    \App\Models\Branch::create([
+        'merchant_id' => $merchant->id,
+        'name' => 'Main Branch',
+        'address' => 'Jl. Merdeka No. 123',
+        'phone' => '021-12345678',
+        'is_active' => 1,
+    ]);
+
+
+
+
+
+
+        
         // Update owner with merchant_id
         $owner->update(['merchant_id' => $merchant->id]);
 
