@@ -32,11 +32,6 @@ class DatabaseSeeder extends Seeder
 
 
             // Create Owner User
-    $owner = \App\Models\User::create([
-        'name' => 'Owner',
-        'email' => 'owner@pos.com',
-        'password' => \Illuminate\Support\Facades\Hash::make('123456'),
-    ]);
 
     // Create Merchant
     $merchant = \App\Models\Merchant::create([
