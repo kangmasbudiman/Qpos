@@ -54,6 +54,7 @@ class DatabaseSeeder extends Seeder
     \App\Models\Branch::create([
         'merchant_id' => $merchant->id,
         'name' => 'Main Branch',
+        'code' => 'MAIN',
         'address' => 'Jl. Merdeka No. 123',
         'phone' => '021-12345678',
         'is_active' => 1,
