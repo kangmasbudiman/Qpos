@@ -31,15 +31,16 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Create merchant
-        $merchant = Merchant::create([
-            'name' => 'My POS Business',
-            'business_type' => 'Retail',
-            'address' => 'Jl. Merdeka No. 123, Jakarta',
-            'phone' => '021-12345678',
-            'email' => 'info@posbusiness.com',
-            'owner_user_id' => $owner->id,
-            'is_active' => true,
-        ]);
+  Merchant::create([
+    'name' => 'My POS Business',
+    'company_code' => 'POS001',
+    'business_type' => 'Retail',
+    'address' => 'Jl. Merdeka No. 123, Jakarta',
+    'phone' => '021-12345678',
+    'email' => 'info@posbusiness.com',
+    'owner_user_id' => 1,
+    'is_active' => 1,
+])
 
         // Update owner with merchant_id
         $owner->update(['merchant_id' => $merchant->id]);
