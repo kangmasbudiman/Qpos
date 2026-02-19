@@ -40,7 +40,7 @@ class DatabaseSeeder extends Seeder
     'email' => 'info@posbusiness.com',
     'owner_user_id' => 1,
     'is_active' => 1,
-])
+]);
 
         // Update owner with merchant_id
         $owner->update(['merchant_id' => $merchant->id]);
