@@ -31,7 +31,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Create merchant
-  Merchant::create([
+$merchant=  Merchant::create([
     'name' => 'My POS Business',
     'company_code' => 'POS001',
     'business_type' => 'Retail',
