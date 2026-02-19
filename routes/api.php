@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\StockController;
 // Public routes
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
+    Route::post('lookup-company', [AuthController::class, 'lookupCompany']);
     Route::post('login', [AuthController::class, 'login']);
 });
 

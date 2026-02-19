@@ -8,20 +8,21 @@ use App\Models\Merchant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
     /**
      * Register a new user (merchant owner)
+     * Auto-generate company_code saat register
      */
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'phone' => 'nullable|string|max:20',
+            'name'          => 'required|string|max:255',
+            'email'         => 'required|string|email|max:255|unique:users',
+            'password'      => 'required|string|min:8|confirmed',
+            'phone'         => 'nullable|string|max:20',
             'merchant_name' => 'required|string|max:255',
             'business_type' => 'nullable|string|max:255',
         ]);
@@ -30,42 +31,49 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors()
             ], 422);
         }
 
         try {
-            // Create user first (as owner)
+            // Buat user sebagai owner
             $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'phone' => $request->phone,
-                'role' => 'owner',
+                'name'      => $request->name,
+                'email'     => $request->email,
+                'password'  => Hash::make($request->password),
+                'phone'     => $request->phone,
+                'role'      => 'owner',
                 'is_active' => true,
             ]);
 
-            // Create merchant
+            // Generate company_code unik (8 karakter huruf besar)
+            do {
+                $companyCode = strtoupper(Str::random(8));
+            } while (Merchant::where('company_code', $companyCode)->exists());
+
+            // Buat merchant
             $merchant = Merchant::create([
-                'name' => $request->merchant_name,
+                'name'          => $request->merchant_name,
+                'company_code'  => $companyCode,
                 'business_type' => $request->business_type,
                 'owner_user_id' => $user->id,
-                'is_active' => true,
+                'is_active'     => true,
             ]);
 
-            // Update user with merchant_id
+            // Update user dengan merchant_id
             $user->update(['merchant_id' => $merchant->id]);
 
-            // Create token
+            // Buat token
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return response()->json([
                 'success' => true,
                 'message' => 'Registration successful',
-                'data' => [
-                    'user' => $user->load('merchant'),
-                    'token' => $token,
-                    'token_type' => 'Bearer',
+                'data'    => [
+                    'user'         => $user->load('merchant'),
+                    'token'        => $token,
+                    'token_type'   => 'Bearer',
+                    'company_code' => $companyCode,
                 ]
             ], 201);
 
@@ -78,24 +86,85 @@ class AuthController extends Controller
     }
 
     /**
-     * Login user
+     * Lookup company by company_code - step pertama login
+     * Return info company + list cabang aktif
+     */
+    public function lookupCompany(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'company_code' => 'required|string|max:10',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Company code is required',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        $merchant = Merchant::where('company_code', strtoupper($request->company_code))
+            ->where('is_active', true)
+            ->with(['branches' => function ($q) {
+                $q->where('is_active', true)->select('id', 'merchant_id', 'name', 'code', 'city', 'address', 'phone');
+            }])
+            ->first();
+
+        if (!$merchant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Company not found or inactive'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'merchant_id'   => $merchant->id,
+                'company_name'  => $merchant->name,
+                'company_code'  => $merchant->company_code,
+                'business_type' => $merchant->business_type,
+                'branches'      => $merchant->branches,
+            ]
+        ]);
+    }
+
+    /**
+     * Login user dengan company_code
+     * company_code dipakai untuk validasi bahwa user milik merchant tersebut
      */
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required|string',
+            'company_code' => 'required|string|max:10',
+            'email'        => 'required|email',
+            'password'     => 'required|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors()
             ], 422);
         }
 
-        $user = User::where('email', $request->email)->first();
+        // Cari merchant berdasarkan company_code
+        $merchant = Merchant::where('company_code', strtoupper($request->company_code))
+            ->where('is_active', true)
+            ->first();
+
+        if (!$merchant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid company code'
+            ], 401);
+        }
+
+        // Cari user berdasarkan email DAN merchant_id
+        $user = User::where('email', $request->email)
+            ->where('merchant_id', $merchant->id)
+            ->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
@@ -111,21 +180,41 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Delete old tokens
+        // Hanya role owner dan cashier yang boleh login via POS app
+        if (!in_array($user->role, ['owner', 'cashier', 'manager'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied for this role'
+            ], 403);
+        }
+
+        // Hapus token lama
         $user->tokens()->delete();
 
-        // Create new token
+        // Buat token baru
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Load branches milik merchant untuk dipilih user
+        $branches = $merchant->branches()->where('is_active', true)
+            ->select('id', 'merchant_id', 'name', 'code', 'city', 'address', 'phone')
+            ->get();
 
         return response()->json([
             'success' => true,
             'message' => 'Login successful',
-            'data' => [
-                'user' => $user->load(['merchant', 'branch']),
-                'token' => $token,
+            'data'    => [
+                'user'       => $user->makeHidden(['remember_token']),
+                'merchant'   => [
+                    'id'           => $merchant->id,
+                    'name'         => $merchant->name,
+                    'company_code' => $merchant->company_code,
+                    'business_type'=> $merchant->business_type,
+                ],
+                'branches'   => $branches,
+                'token'      => $token,
                 'token_type' => 'Bearer',
             ]
-        ], 200);
+        ]);
     }
 
     /**
@@ -138,7 +227,7 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Logout successful'
-        ], 200);
+        ]);
     }
 
     /**
@@ -148,8 +237,8 @@ class AuthController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => $request->user()->load(['merchant', 'branch'])
-        ], 200);
+            'data'    => $request->user()->load(['merchant', 'branch'])
+        ]);
     }
 
     /**
@@ -158,7 +247,7 @@ class AuthController extends Controller
     public function updateProfile(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|string|max:255',
+            'name'  => 'sometimes|string|max:255',
             'phone' => 'nullable|string|max:20',
             'email' => 'sometimes|email|unique:users,email,' . $request->user()->id,
         ]);
@@ -167,7 +256,7 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors()
             ], 422);
         }
 
@@ -178,8 +267,8 @@ class AuthController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Profile updated successfully',
-                'data' => $user->load(['merchant', 'branch'])
-            ], 200);
+                'data'    => $user->load(['merchant', 'branch'])
+            ]);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -196,14 +285,14 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'current_password' => 'required|string',
-            'new_password' => 'required|string|min:8|confirmed',
+            'new_password'     => 'required|string|min:8|confirmed',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors()
             ], 422);
         }
 
@@ -217,17 +306,13 @@ class AuthController extends Controller
         }
 
         try {
-            $user->update([
-                'password' => Hash::make($request->new_password)
-            ]);
-
-            // Delete all tokens to force re-login
+            $user->update(['password' => Hash::make($request->new_password)]);
             $user->tokens()->delete();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Password changed successfully. Please login again.'
-            ], 200);
+            ]);
 
         } catch (\Exception $e) {
             return response()->json([
