@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\PurchaseController;
 use App\Http\Controllers\Api\StockController;
+use App\Http\Controllers\Api\UploadController;
 
 /*
 |--------------------------------------------------------------------------
@@ -66,6 +67,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [PurchaseController::class, 'store']);
         Route::get('{id}', [PurchaseController::class, 'show']);
         Route::post('{id}/cancel', [PurchaseController::class, 'cancel']);
+    });
+
+    // Image Upload
+    Route::prefix('upload')->group(function () {
+        Route::post('image', [UploadController::class, 'uploadImage']);
+        Route::delete('image', [UploadController::class, 'deleteImage']);
     });
 
     // Stock Management

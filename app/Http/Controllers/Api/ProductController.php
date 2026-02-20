@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Stock;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -48,17 +49,18 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
+            'name'        => 'required|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
-            'sku' => 'required|string|unique:products,sku',
-            'barcode' => 'nullable|string|unique:products,barcode',
+            'sku'         => 'required|string|unique:products,sku',
+            'barcode'     => 'nullable|string|unique:products,barcode',
             'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'cost' => 'nullable|numeric|min:0',
-            'unit' => 'nullable|string|max:50',
-            'min_stock' => 'nullable|integer|min:0',
-            'image' => 'nullable|string',
-            'is_active' => 'boolean',
+            'price'       => 'required|numeric|min:0',
+            'cost'        => 'nullable|numeric|min:0',
+            'unit'        => 'nullable|string|max:50',
+            'min_stock'   => 'nullable|integer|min:0',
+            'image'       => 'nullable|string',           // URL string dari /api/upload/image
+            'image_file'  => 'nullable|image|mimes:jpeg,jpg,png,webp|max:5120', // upload langsung
+            'is_active'   => 'boolean',
         ]);
 
         if ($validator->fails()) {
@@ -70,19 +72,28 @@ class ProductController extends Controller
         }
 
         try {
+            // Handle inline image upload jika dikirim sebagai file
+            $imageUrl = $request->image;
+            if ($request->hasFile('image_file')) {
+                $file     = $request->file('image_file');
+                $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+                $file->storeAs('public/products', $filename);
+                $imageUrl = rtrim(config('app.url'), '/') . '/storage/products/' . $filename;
+            }
+
             $product = Product::create([
                 'merchant_id' => $request->user()->merchant_id,
                 'category_id' => $request->category_id,
-                'name' => $request->name,
-                'sku' => $request->sku,
-                'barcode' => $request->barcode,
+                'name'        => $request->name,
+                'sku'         => $request->sku,
+                'barcode'     => $request->barcode,
                 'description' => $request->description,
-                'price' => $request->price,
-                'cost' => $request->cost ?? 0,
-                'unit' => $request->unit ?? 'pcs',
-                'min_stock' => $request->min_stock ?? 0,
-                'image' => $request->image,
-                'is_active' => $request->is_active ?? true,
+                'price'       => $request->price,
+                'cost'        => $request->cost ?? 0,
+                'unit'        => $request->unit ?? 'pcs',
+                'min_stock'   => $request->min_stock ?? 0,
+                'image'       => $imageUrl,
+                'is_active'   => $request->is_active ?? true,
             ]);
 
             return response()->json([
@@ -136,17 +147,18 @@ class ProductController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|string|max:255',
+            'name'        => 'sometimes|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
-            'sku' => 'sometimes|string|unique:products,sku,' . $id,
-            'barcode' => 'nullable|string|unique:products,barcode,' . $id,
+            'sku'         => 'sometimes|string|unique:products,sku,' . $id,
+            'barcode'     => 'nullable|string|unique:products,barcode,' . $id,
             'description' => 'nullable|string',
-            'price' => 'sometimes|numeric|min:0',
-            'cost' => 'nullable|numeric|min:0',
-            'unit' => 'nullable|string|max:50',
-            'min_stock' => 'nullable|integer|min:0',
-            'image' => 'nullable|string',
-            'is_active' => 'boolean',
+            'price'       => 'sometimes|numeric|min:0',
+            'cost'        => 'nullable|numeric|min:0',
+            'unit'        => 'nullable|string|max:50',
+            'min_stock'   => 'nullable|integer|min:0',
+            'image'       => 'nullable|string',
+            'image_file'  => 'nullable|image|mimes:jpeg,jpg,png,webp|max:5120',
+            'is_active'   => 'boolean',
         ]);
 
         if ($validator->fails()) {
@@ -158,10 +170,31 @@ class ProductController extends Controller
         }
 
         try {
-            $product->update($request->only([
+            $data = $request->only([
                 'name', 'category_id', 'sku', 'barcode', 'description',
-                'price', 'cost', 'unit', 'min_stock', 'image', 'is_active'
-            ]));
+                'price', 'cost', 'unit', 'min_stock', 'image', 'is_active',
+            ]);
+
+            // Handle inline image upload
+            if ($request->hasFile('image_file')) {
+                // Hapus gambar lama jika ada
+                if ($product->image) {
+                    $oldPath = str_replace(
+                        rtrim(config('app.url'), '/') . '/storage/',
+                        'public/',
+                        $product->image
+                    );
+                    if (Storage::exists($oldPath)) {
+                        Storage::delete($oldPath);
+                    }
+                }
+                $file     = $request->file('image_file');
+                $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+                $file->storeAs('public/products', $filename);
+                $data['image'] = rtrim(config('app.url'), '/') . '/storage/products/' . $filename;
+            }
+
+            $product->update($data);
 
             return response()->json([
                 'success' => true,
