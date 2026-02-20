@@ -5,7 +5,10 @@
       "Bash(dart analyze:*)",
       "Bash(flutter analyze:*)",
       "Bash(curl:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(php artisan make:migration:*)",
+      "Bash(php artisan migrate:*)",
+      "Bash(php artisan route:list:*)"
     ]
   }
 }

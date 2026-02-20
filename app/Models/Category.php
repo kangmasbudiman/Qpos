@@ -11,6 +11,7 @@ class Category extends Model
 
     protected $fillable = [
         'merchant_id',
+        'branch_id',
         'name',
         'description',
         'is_active',
@@ -24,6 +25,11 @@ class Category extends Model
     public function merchant()
     {
         return $this->belongsTo(Merchant::class);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function products()

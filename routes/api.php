@@ -40,6 +40,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Categories
     Route::apiResource('categories', CategoryController::class);
 
+    // Branches
+    Route::apiResource('branches', BranchController::class);
+    Route::get('branches/{branchId}/categories', [CategoryController::class, 'byBranch']);
+
     // Products
     Route::apiResource('products', ProductController::class);
     Route::get('products/{id}/stock', [ProductController::class, 'getStock']);
@@ -49,9 +53,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Customers
     Route::apiResource('customers', CustomerController::class);
-
-    // Branches
-    Route::apiResource('branches', BranchController::class);
 
     // Sales
     Route::prefix('sales')->group(function () {
