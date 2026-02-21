@@ -40,11 +40,14 @@ class UploadController extends Controller
 
             $file     = $request->file('file');
             $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
-            $path     = $file->storeAs("public/{$folder}", $filename);
+            //$path     = $file->storeAs("public/{$folder}", $filename);
+            // Simpan ke disk public TANPA prefix public/
+            $path = $file->storeAs($folder, $filename, 'public');
+
 
             // Build public URL
             $url = rtrim(config('app.url'), '/') . '/storage/' . $folder . '/' . $filename;
-
+            //$url = asset('storage/' . $folder . '/' . $filename);
             return response()->json([
                 'success' => true,
                 'message' => 'Image uploaded successfully',
