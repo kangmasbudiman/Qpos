@@ -191,7 +191,8 @@ class ProductController extends Controller
                 }
                 $file     = $request->file('image_file');
                 $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
-                $file->storeAs('public/products', $filename);
+               
+                 $file->storeAs('products', $filename, 'public');
                 $data['image'] = rtrim(config('app.url'), '/') . '/storage/products/' . $filename;
             }
 
