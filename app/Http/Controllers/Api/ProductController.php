@@ -77,7 +77,8 @@ class ProductController extends Controller
             if ($request->hasFile('image_file')) {
                 $file     = $request->file('image_file');
                 $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
-                $file->storeAs('public/products', $filename);
+                
+                $file->storeAs('products', $filename, 'public');
                 $imageUrl = rtrim(config('app.url'), '/') . '/storage/products/' . $filename;
             }
 
