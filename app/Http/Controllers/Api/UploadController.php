@@ -46,7 +46,7 @@ class UploadController extends Controller
 
 
             // Build public URL
-            $url = rtrim(config('app.url'), '/') . '/storage/' . $folder . '/' . $filename;
+            $url = rtrim(config('app.url'), '/') . '/qpos/storage/' . $folder . '/' . $filename;
             //$url = asset('storage/' . $folder . '/' . $filename);
             return response()->json([
                 'success' => true,
