@@ -24,7 +24,7 @@ class CreateSaleRequest extends FormRequest
             'discount' => 'nullable|numeric|min:0',
             'tax' => 'nullable|numeric|min:0',
             'paid' => 'required|numeric|min:0',
-            'payment_method' => 'required|in:cash,card,transfer,ewallet',
+            'payment_method' => 'required|in:cash,card,transfer,ewallet,debit,credit,qris,mixed',
             'notes' => 'nullable|string',
         ];
     }

@@ -58,6 +58,7 @@ class ProductController extends Controller
             'cost'        => 'nullable|numeric|min:0',
             'unit'        => 'nullable|string|max:50',
             'min_stock'   => 'nullable|integer|min:0',
+            'stock'       => 'nullable|integer|min:0',
             'image'       => 'nullable|string',           // URL string dari /api/upload/image
             'image_file'  => 'nullable|image|mimes:jpeg,jpg,png,webp|max:5120', // upload langsung
             'is_active'   => 'boolean',
@@ -96,6 +97,15 @@ class ProductController extends Controller
                 'image'       => $imageUrl,
                 'is_active'   => $request->is_active ?? true,
             ]);
+
+            // Create stock record for the user's branch
+            $branchId = $request->user()->branch_id;
+            if ($branchId) {
+                Stock::updateOrCreate(
+                    ['product_id' => $product->id, 'branch_id' => $branchId],
+                    ['quantity' => $request->stock ?? 0]
+                );
+            }
 
             return response()->json([
                 'success' => true,
@@ -157,6 +167,7 @@ class ProductController extends Controller
             'cost'        => 'nullable|numeric|min:0',
             'unit'        => 'nullable|string|max:50',
             'min_stock'   => 'nullable|integer|min:0',
+            'stock'       => 'nullable|integer|min:0',
             'image'       => 'nullable|string',
             'image_file'  => 'nullable|image|mimes:jpeg,jpg,png,webp|max:5120',
             'is_active'   => 'boolean',
@@ -197,6 +208,17 @@ class ProductController extends Controller
             }
 
             $product->update($data);
+
+            // Update stock record for the user's branch
+            if ($request->has('stock')) {
+                $branchId = $request->user()->branch_id;
+                if ($branchId) {
+                    Stock::updateOrCreate(
+                        ['product_id' => $product->id, 'branch_id' => $branchId],
+                        ['quantity' => $request->stock ?? 0]
+                    );
+                }
+            }
 
             return response()->json([
                 'success' => true,
