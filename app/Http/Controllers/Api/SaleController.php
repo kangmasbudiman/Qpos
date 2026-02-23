@@ -40,7 +40,7 @@ class SaleController extends Controller
             })
             ->with(['customer', 'branch', 'user'])
             ->latest()
-            ->paginate($request->per_page ?? 15);
+            ->paginate(min((int)($request->per_page ?? 15), 500));
 
         return response()->json([
             'success' => true,
