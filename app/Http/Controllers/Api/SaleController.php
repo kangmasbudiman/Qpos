@@ -38,7 +38,7 @@ class SaleController extends Controller
             ->when($request->date_to, function ($query, $dateTo) {
                 $query->whereDate('created_at', '<=', $dateTo);
             })
-            ->with(['customer', 'branch', 'user'])
+            ->with(['customer', 'branch', 'user', 'items'])
             ->latest()
             ->paginate(min((int)($request->per_page ?? 15), 500));
 
