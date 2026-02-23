@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\PurchaseController;
 use App\Http\Controllers\Api\StockController;
 use App\Http\Controllers\Api\UploadController;
+use App\Http\Controllers\Api\StaffController;
 
 /*
 |--------------------------------------------------------------------------
@@ -42,6 +43,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Branches
     Route::apiResource('branches', BranchController::class);
+
+    // Staff management (owner/manager only)
+    Route::prefix('staff')->group(function () {
+        Route::get('/', [StaffController::class, 'index']);
+        Route::post('/', [StaffController::class, 'store']);
+        Route::get('{id}', [StaffController::class, 'show']);
+        Route::put('{id}', [StaffController::class, 'update']);
+        Route::delete('{id}', [StaffController::class, 'destroy']);
+        Route::post('{id}/toggle-active', [StaffController::class, 'toggleActive']);
+    });
     Route::get('branches/{branchId}/categories', [CategoryController::class, 'byBranch']);
 
     // Products
