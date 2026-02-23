@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\PurchaseController;
 use App\Http\Controllers\Api\StockController;
 use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\Api\StaffController;
+use App\Http\Controllers\Api\ProfitLossController;
 
 /*
 |--------------------------------------------------------------------------
@@ -86,6 +87,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('image', [UploadController::class, 'uploadImage']);
         Route::delete('image', [UploadController::class, 'deleteImage']);
     });
+
+    // Reports
+    Route::get('reports/profit-loss', [ProfitLossController::class, 'index']);
 
     // Stock Management
     Route::prefix('stocks')->group(function () {
