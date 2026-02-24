@@ -13,7 +13,10 @@
       "Bash(TOKEN=\"12|Nt9uD3dpqApwDDi8HwFXrKKYCVQVyUKE6pGOUFuhc57c4bba\")",
       "Bash(flutter pub get:*)",
       "Bash(flutter pub add:*)",
-      "Bash(flutter build:*)"
+      "Bash(flutter build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }

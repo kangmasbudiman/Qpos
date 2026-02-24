@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\StockController;
 use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\ProfitLossController;
+use App\Http\Controllers\Api\StockOpnameController;
 
 /*
 |--------------------------------------------------------------------------
@@ -97,5 +98,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('adjustment', [StockController::class, 'adjustment']);
         Route::post('transfer', [StockController::class, 'transfer']);
         Route::get('movements', [StockController::class, 'movements']);
+    });
+
+    // Stock Opname
+    Route::prefix('stock-opnames')->group(function () {
+        Route::get('/', [StockOpnameController::class, 'index']);
+        Route::post('/', [StockOpnameController::class, 'store']);
+        Route::get('{stockOpname}', [StockOpnameController::class, 'show']);
     });
 });
