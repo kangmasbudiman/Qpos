@@ -35,32 +35,33 @@ class BackupController extends Controller
             mkdir(storage_path('app/private'), 0755, true);
         }
 
-        // Escape password untuk shell agar aman
-        $escapedPass = escapeshellarg($dbPass);
-        $escapedUser = escapeshellarg($dbUser);
-        $escapedDb   = escapeshellarg($dbName);
-        $escapedHost = escapeshellarg($dbHost);
-        $escapedPort = escapeshellarg($dbPort);
+        // Tulis password ke file sementara agar tidak terekspos di command line
+        $cnfPath = storage_path('app/private/.mysqldump_' . $timestamp . '.cnf');
+        file_put_contents($cnfPath, "[mysqldump]\npassword=" . $dbPass . "\n");
+        chmod($cnfPath, 0600);
 
-        $command = "mysqldump"
-            . " --host={$dbHost}"
-            . " --port={$dbPort}"
-            . " --user={$dbUser}"
-            . " --password={$dbPass}"
-            . " --no-tablespaces"
-            . " --skip-comments"
-            . " --single-transaction"
-            . " {$dbName}"
-            . " > " . escapeshellarg($tmpPath)
-            . " 2>&1";
+        $command = sprintf(
+            'mysqldump --defaults-extra-file=%s --host=%s --port=%s --user=%s --no-tablespaces --skip-comments --single-transaction %s > %s 2>&1',
+            escapeshellarg($cnfPath),
+            escapeshellarg($dbHost),
+            escapeshellarg($dbPort),
+            escapeshellarg($dbUser),
+            escapeshellarg($dbName),
+            escapeshellarg($tmpPath)
+        );
 
         exec($command, $output, $returnCode);
+
+        // Hapus file credentials segera
+        @unlink($cnfPath);
+
+        $outputStr = implode(' ', $output);
 
         if ($returnCode !== 0 || !file_exists($tmpPath) || filesize($tmpPath) === 0) {
             @unlink($tmpPath);
             return response()->json([
                 'success' => false,
-                'message' => 'Backup failed: ' . implode(' ', $output),
+                'message' => 'Backup failed (code ' . $returnCode . '): ' . $outputStr,
             ], 500);
         }
 
