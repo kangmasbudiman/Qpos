@@ -99,18 +99,13 @@ class BackupController extends Controller
             ], 500);
         }
 
-        return response()->streamDownload(function () use ($tmpPath) {
-            $gz = gzopen('php://output', 'wb9');
-            $fp = fopen($tmpPath, 'rb');
-            while (!feof($fp)) {
-                gzwrite($gz, fread($fp, 65536));
-            }
-            fclose($fp);
-            gzclose($gz);
-            @unlink($tmpPath);
-        }, $gzFilename, [
+        $compressed = gzencode(file_get_contents($tmpPath), 9);
+        @unlink($tmpPath);
+
+        return response($compressed, 200, [
             'Content-Type'        => 'application/gzip',
             'Content-Disposition' => 'attachment; filename="' . $gzFilename . '"',
+            'Content-Length'      => strlen($compressed),
             'X-Backup-Method'     => 'mysqldump',
         ]);
     }
@@ -155,13 +150,13 @@ class BackupController extends Controller
 
         $sql .= "SET FOREIGN_KEY_CHECKS = 1;\n";
 
-        return response()->streamDownload(function () use ($sql) {
-            $gz = gzopen('php://output', 'wb9');
-            gzwrite($gz, $sql);
-            gzclose($gz);
-        }, $gzFilename, [
+        // Gunakan gzencode() — lebih kompatibel dari gzopen(php://output)
+        $compressed = gzencode($sql, 9);
+
+        return response($compressed, 200, [
             'Content-Type'        => 'application/gzip',
             'Content-Disposition' => 'attachment; filename="' . $gzFilename . '"',
+            'Content-Length'      => strlen($compressed),
             'X-Backup-Method'     => 'pdo',
         ]);
     }
