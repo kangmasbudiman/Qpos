@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\ProfitLossController;
 use App\Http\Controllers\Api\StockOpnameController;
+use App\Http\Controllers\Api\BackupController;
 
 /*
 |--------------------------------------------------------------------------
@@ -91,6 +92,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Reports
     Route::get('reports/profit-loss', [ProfitLossController::class, 'index']);
+
+    // Backup
+    Route::get('backup/download', [BackupController::class, 'download']);
 
     // Stock Management
     Route::prefix('stocks')->group(function () {
