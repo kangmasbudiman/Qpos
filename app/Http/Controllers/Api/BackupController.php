@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class BackupController extends Controller
 {
@@ -11,7 +12,6 @@ class BackupController extends Controller
     {
         $user = $request->user();
 
-        // Hanya owner dan manager yang boleh backup
         if (!in_array($user->role, ['owner', 'manager', 'super_admin'])) {
             return response()->json([
                 'success' => false,
@@ -26,22 +26,60 @@ class BackupController extends Controller
         $dbPort = config('database.connections.mysql.port');
 
         $timestamp  = now()->format('Y-m-d_H-i-s');
-        $filename   = 'backup_' . $timestamp . '.sql';
-        $gzFilename = $filename . '.gz';
-        $tmpPath    = storage_path('app/private/' . $filename);
+        $gzFilename = 'backup_' . $timestamp . '.sql.gz';
 
-        // Pastikan direktori ada
+        // Cari path mysqldump (berbeda di tiap server)
+        $mysqldumpPath = $this->findMysqldump();
+
+        if ($mysqldumpPath) {
+            // Gunakan mysqldump jika tersedia
+            return $this->backupViaMysqldump(
+                $mysqldumpPath, $dbName, $dbUser, $dbPass, $dbHost, $dbPort,
+                $timestamp, $gzFilename
+            );
+        }
+
+        // Fallback: generate SQL via PDO (tanpa butuh mysqldump)
+        return $this->backupViaPdo($dbName, $gzFilename);
+    }
+
+    private function findMysqldump(): ?string
+    {
+        $paths = [
+            'mysqldump',                        // PATH default
+            '/usr/bin/mysqldump',
+            '/usr/local/bin/mysqldump',
+            '/usr/mysql/bin/mysqldump',
+            '/usr/local/mysql/bin/mysqldump',
+            '/opt/lampp/bin/mysqldump',
+            '/opt/homebrew/bin/mysqldump',
+        ];
+
+        foreach ($paths as $path) {
+            exec($path . ' --version 2>/dev/null', $out, $rc);
+            if ($rc === 0) return $path;
+        }
+        return null;
+    }
+
+    private function backupViaMysqldump(
+        string $bin, string $dbName, string $dbUser, string $dbPass,
+        string $dbHost, string $dbPort, string $timestamp, string $gzFilename
+    ) {
+        $tmpPath = storage_path('app/private/backup_' . $timestamp . '.sql');
+
         if (!is_dir(storage_path('app/private'))) {
             mkdir(storage_path('app/private'), 0755, true);
         }
 
-        // Tulis password ke file sementara agar tidak terekspos di command line
-        $cnfPath = storage_path('app/private/.mysqldump_' . $timestamp . '.cnf');
+        // Tulis password ke .cnf agar aman
+        $cnfPath = storage_path('app/private/.my_' . $timestamp . '.cnf');
         file_put_contents($cnfPath, "[mysqldump]\npassword=" . $dbPass . "\n");
         chmod($cnfPath, 0600);
 
         $command = sprintf(
-            'mysqldump --defaults-extra-file=%s --host=%s --port=%s --user=%s --no-tablespaces --skip-comments --single-transaction %s > %s 2>&1',
+            '%s --defaults-extra-file=%s --host=%s --port=%s --user=%s --no-tablespaces --skip-comments --single-transaction %s > %s 2>&1',
+            $bin,
             escapeshellarg($cnfPath),
             escapeshellarg($dbHost),
             escapeshellarg($dbPort),
@@ -51,21 +89,16 @@ class BackupController extends Controller
         );
 
         exec($command, $output, $returnCode);
-
-        // Hapus file credentials segera
         @unlink($cnfPath);
-
-        $outputStr = implode(' ', $output);
 
         if ($returnCode !== 0 || !file_exists($tmpPath) || filesize($tmpPath) === 0) {
             @unlink($tmpPath);
             return response()->json([
                 'success' => false,
-                'message' => 'Backup failed (code ' . $returnCode . '): ' . $outputStr,
+                'message' => 'Backup failed (code ' . $returnCode . '): ' . implode(' ', $output),
             ], 500);
         }
 
-        // Stream file + gzip on-the-fly, hapus tmp setelah selesai
         return response()->streamDownload(function () use ($tmpPath) {
             $gz = gzopen('php://output', 'wb9');
             $fp = fopen($tmpPath, 'rb');
@@ -78,8 +111,58 @@ class BackupController extends Controller
         }, $gzFilename, [
             'Content-Type'        => 'application/gzip',
             'Content-Disposition' => 'attachment; filename="' . $gzFilename . '"',
-            'X-Backup-Filename'   => $gzFilename,
-            'X-Backup-Database'   => $dbName,
+            'X-Backup-Method'     => 'mysqldump',
+        ]);
+    }
+
+    private function backupViaPdo(string $dbName, string $gzFilename)
+    {
+        // Generate SQL dump via PDO — tidak butuh mysqldump binary
+        $pdo = DB::connection()->getPdo();
+
+        $sql  = "-- POS Backup via PDO\n";
+        $sql .= "-- Database: {$dbName}\n";
+        $sql .= "-- Generated: " . now()->toDateTimeString() . "\n\n";
+        $sql .= "SET NAMES utf8mb4;\n";
+        $sql .= "SET FOREIGN_KEY_CHECKS = 0;\n\n";
+
+        // Ambil semua tabel
+        $tables = $pdo->query("SHOW TABLES")->fetchAll(\PDO::FETCH_COLUMN);
+
+        foreach ($tables as $table) {
+            // DROP + CREATE TABLE
+            $createRow = $pdo->query("SHOW CREATE TABLE `{$table}`")->fetch(\PDO::FETCH_ASSOC);
+            $createSql = array_values($createRow)[1];
+
+            $sql .= "DROP TABLE IF EXISTS `{$table}`;\n";
+            $sql .= $createSql . ";\n\n";
+
+            // INSERT data
+            $rows = $pdo->query("SELECT * FROM `{$table}`")->fetchAll(\PDO::FETCH_ASSOC);
+            if (count($rows) > 0) {
+                $cols = '`' . implode('`, `', array_keys($rows[0])) . '`';
+                $sql .= "INSERT INTO `{$table}` ({$cols}) VALUES\n";
+                $values = [];
+                foreach ($rows as $row) {
+                    $escaped = array_map(function ($v) use ($pdo) {
+                        return $v === null ? 'NULL' : $pdo->quote((string)$v);
+                    }, $row);
+                    $values[] = '(' . implode(', ', $escaped) . ')';
+                }
+                $sql .= implode(",\n", $values) . ";\n\n";
+            }
+        }
+
+        $sql .= "SET FOREIGN_KEY_CHECKS = 1;\n";
+
+        return response()->streamDownload(function () use ($sql) {
+            $gz = gzopen('php://output', 'wb9');
+            gzwrite($gz, $sql);
+            gzclose($gz);
+        }, $gzFilename, [
+            'Content-Type'        => 'application/gzip',
+            'Content-Disposition' => 'attachment; filename="' . $gzFilename . '"',
+            'X-Backup-Method'     => 'pdo',
         ]);
     }
 }
