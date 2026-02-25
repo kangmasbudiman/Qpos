@@ -95,6 +95,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Backup
     Route::get('backup/download', [BackupController::class, 'download']);
+    Route::post('backup/restore', [BackupController::class, 'restore']);
 
     // Stock Management
     Route::prefix('stocks')->group(function () {

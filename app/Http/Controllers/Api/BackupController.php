@@ -43,6 +43,132 @@ class BackupController extends Controller
         return $this->backupViaPdo($dbName, $gzFilename);
     }
 
+    public function restore(Request $request)
+    {
+        $user = $request->user();
+
+        if (!in_array($user->role, ['owner', 'super_admin'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya owner yang dapat melakukan restore database.',
+            ], 403);
+        }
+
+        $request->validate(['file' => 'required|file|max:102400']); // max 100MB
+
+        if (!is_dir(storage_path('app/private'))) {
+            mkdir(storage_path('app/private'), 0755, true);
+        }
+
+        $timestamp  = time();
+        $tmpGzPath  = storage_path('app/private/restore_' . $timestamp . '.sql.gz');
+        $tmpSqlPath = storage_path('app/private/restore_' . $timestamp . '.sql');
+
+        // Pindahkan file upload ke tmp
+        $request->file('file')->move(dirname($tmpGzPath), basename($tmpGzPath));
+
+        // Decompress gzip → sql
+        $gz = gzopen($tmpGzPath, 'rb');
+        if (!$gz) {
+            @unlink($tmpGzPath);
+            return response()->json(['success' => false, 'message' => 'File tidak valid atau bukan format gzip.'], 422);
+        }
+        $fp = fopen($tmpSqlPath, 'wb');
+        while (!gzeof($gz)) {
+            fwrite($fp, gzread($gz, 65536));
+        }
+        gzclose($gz);
+        fclose($fp);
+        @unlink($tmpGzPath);
+
+        if (!file_exists($tmpSqlPath) || filesize($tmpSqlPath) === 0) {
+            return response()->json(['success' => false, 'message' => 'Gagal decompress file backup.'], 422);
+        }
+
+        $dbName = config('database.connections.mysql.database');
+        $dbUser = config('database.connections.mysql.username');
+        $dbPass = config('database.connections.mysql.password');
+        $dbHost = config('database.connections.mysql.host');
+        $dbPort = config('database.connections.mysql.port');
+
+        // Cari mysql binary
+        $mysqlBin = $this->findMysqlBin();
+
+        if ($mysqlBin) {
+            $cnfPath = storage_path('app/private/.my_restore_' . $timestamp . '.cnf');
+            file_put_contents($cnfPath, "[client]\npassword=" . $dbPass . "\n");
+            chmod($cnfPath, 0600);
+
+            $command = sprintf(
+                '%s --defaults-extra-file=%s --host=%s --port=%s --user=%s %s < %s 2>&1',
+                $mysqlBin,
+                escapeshellarg($cnfPath),
+                escapeshellarg($dbHost),
+                escapeshellarg($dbPort),
+                escapeshellarg($dbUser),
+                escapeshellarg($dbName),
+                escapeshellarg($tmpSqlPath)
+            );
+
+            exec($command, $output, $returnCode);
+            @unlink($cnfPath);
+            @unlink($tmpSqlPath);
+
+            if ($returnCode !== 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Restore gagal: ' . implode(' ', $output),
+                ], 500);
+            }
+        } else {
+            // Fallback: import via PDO
+            try {
+                $pdo = DB::connection()->getPdo();
+                $sql = file_get_contents($tmpSqlPath);
+                @unlink($tmpSqlPath);
+
+                // Split per statement dan eksekusi satu per satu
+                $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
+                foreach (array_filter(array_map('trim', explode(";\n", $sql))) as $stmt) {
+                    if (!empty($stmt)) {
+                        $pdo->exec($stmt);
+                    }
+                }
+                $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
+            } catch (\Exception $e) {
+                @unlink($tmpSqlPath);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Restore gagal: ' . $e->getMessage(),
+                ], 500);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Database berhasil di-restore.',
+        ]);
+    }
+
+    private function findMysqlBin(): ?string
+    {
+        $paths = [
+            'mysql',
+            '/usr/bin/mysql',
+            '/usr/local/bin/mysql',
+            '/usr/mysql/bin/mysql',
+            '/usr/local/mysql/bin/mysql',
+            '/opt/lampp/bin/mysql',
+            '/opt/homebrew/bin/mysql',
+        ];
+
+        foreach ($paths as $path) {
+            exec($path . ' --version 2>/dev/null', $out, $rc);
+            if ($rc === 0) return $path;
+        }
+        return null;
+    }
+
     private function findMysqldump(): ?string
     {
         $paths = [
