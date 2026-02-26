@@ -106,6 +106,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('{id}', [RegistrationController::class, 'show']);
         Route::post('{id}/approve', [RegistrationController::class, 'approve']);
         Route::post('{id}/reject', [RegistrationController::class, 'reject']);
+        Route::post('{id}/resend-code', [RegistrationController::class, 'resendCode']);
     });
 
     // Stock Management

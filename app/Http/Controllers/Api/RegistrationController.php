@@ -236,6 +236,62 @@ class RegistrationController extends Controller
     }
 
     /**
+     * Kirim ulang kode perusahaan ke email merchant (hanya untuk status approved)
+     */
+    public function resendCode(Request $request, $id)
+    {
+        $merchant = Merchant::with('owner')->find($id);
+
+        if (!$merchant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data tidak ditemukan'
+            ], 404);
+        }
+
+        if ($merchant->registration_status !== 'approved') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kode hanya bisa dikirim ulang untuk merchant yang sudah disetujui'
+            ], 422);
+        }
+
+        if (!$merchant->company_code) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Merchant ini belum memiliki kode perusahaan'
+            ], 422);
+        }
+
+        $emailTo = $merchant->owner?->email ?? $merchant->email;
+        if (!$emailTo) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email merchant tidak ditemukan'
+            ], 422);
+        }
+
+        try {
+            Mail::to($emailTo)->send(new RegistrationApproved($merchant, $merchant->company_code));
+        } catch (\Throwable $e) {
+            Log::error('Failed to resend company code email to ' . $emailTo . ': ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengirim email: ' . $e->getMessage()
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kode perusahaan berhasil dikirim ulang ke ' . $emailTo,
+            'data'    => [
+                'email_to'     => $emailTo,
+                'company_code' => $merchant->company_code,
+            ],
+        ]);
+    }
+
+    /**
      * Statistik ringkasan pendaftaran (untuk dashboard owner app)
      */
     public function stats()
