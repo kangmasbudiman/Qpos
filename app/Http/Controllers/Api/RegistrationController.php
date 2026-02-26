@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\RegistrationApproved;
+use App\Mail\RegistrationRejected;
 use App\Models\Merchant;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class RegistrationController extends Controller
 {
@@ -143,6 +147,16 @@ class RegistrationController extends Controller
             $merchant->owner->update(['is_active' => true]);
         }
 
+        // Kirim email notifikasi ke merchant (fire & forget, gagal tidak menghentikan proses)
+        $emailTo = $merchant->owner?->email ?? $merchant->email;
+        if ($emailTo) {
+            try {
+                Mail::to($emailTo)->send(new RegistrationApproved($merchant, $companyCode));
+            } catch (\Throwable $e) {
+                Log::error('Failed to send approval email to ' . $emailTo . ': ' . $e->getMessage());
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Pendaftaran berhasil disetujui',
@@ -196,6 +210,16 @@ class RegistrationController extends Controller
             'is_active'           => false,
             'rejected_at'         => now(),
         ]);
+
+        // Kirim email notifikasi penolakan ke merchant (fire & forget)
+        $emailTo = $merchant->owner?->email ?? $merchant->email;
+        if ($emailTo) {
+            try {
+                Mail::to($emailTo)->send(new RegistrationRejected($merchant, $request->rejection_reason));
+            } catch (\Throwable $e) {
+                Log::error('Failed to send rejection email to ' . $emailTo . ': ' . $e->getMessage());
+            }
+        }
 
         return response()->json([
             'success' => true,
