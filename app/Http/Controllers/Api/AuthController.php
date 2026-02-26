@@ -308,6 +308,31 @@ class AuthController extends Controller
     }
 
     /**
+     * Get branches for the logged-in user's merchant (used by mobile app to refresh branch list)
+     */
+    public function branches(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user->merchant_id) {
+            return response()->json([
+                'success' => true,
+                'data'    => [],
+            ]);
+        }
+
+        $branches = \App\Models\Branch::where('merchant_id', $user->merchant_id)
+            ->where('is_active', true)
+            ->select('id', 'merchant_id', 'name', 'code', 'city', 'address', 'phone')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data'    => $branches,
+        ]);
+    }
+
+    /**
      * Logout user
      */
     public function logout(Request $request)

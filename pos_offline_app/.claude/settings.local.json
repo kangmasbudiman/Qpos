@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan migrate:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(/Users/admin/development/latihanAI/pos-backend/pos_offline_app/lib/presentation/screens/pos_screen.dart:*)"
+    ]
+  }
+}

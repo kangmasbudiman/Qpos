@@ -6,8 +6,45 @@ import '../../services/auth/auth_service.dart';
 import '../controllers/auth_controller.dart';
 import '../widgets/connectivity_indicator.dart';
 
-class BranchSelectionScreen extends StatelessWidget {
+class BranchSelectionScreen extends StatefulWidget {
   const BranchSelectionScreen({Key? key}) : super(key: key);
+
+  @override
+  State<BranchSelectionScreen> createState() => _BranchSelectionScreenState();
+}
+
+class _BranchSelectionScreenState extends State<BranchSelectionScreen> {
+  bool _isRefreshing = false;
+
+  Future<void> _refreshBranches() async {
+    final authService = Get.find<AuthService>();
+    setState(() => _isRefreshing = true);
+    try {
+      final found = await authService.refreshBranches();
+      if (!mounted) return;
+      if (found) {
+        Get.snackbar(
+          'Berhasil',
+          'Cabang berhasil dimuat. Silakan pilih cabang.',
+          backgroundColor: Colors.green.withValues(alpha: 0.9),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 3),
+        );
+      } else if (authService.branches.isEmpty) {
+        Get.snackbar(
+          'Belum Ada Cabang',
+          'Cabang belum tersedia. Pastikan admin sudah menambahkan cabang di dashboard.',
+          backgroundColor: Colors.orange.withValues(alpha: 0.9),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 4),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isRefreshing = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +110,8 @@ class BranchSelectionScreen extends StatelessWidget {
                           ),
                           SizedBox(height: size.height * 0.02),
                           Expanded(
-                            child: _buildBranchList(controller, authService, size, isTablet),
+                            child: Obx(() => _buildBranchList(
+                              controller, authService, size, isTablet)),
                           ),
                         ],
                       ),
@@ -206,7 +244,35 @@ class BranchSelectionScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 13, color: Colors.grey),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
+
+              // ── Tombol Refresh ─────────────────────────────────────
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isRefreshing ? null : _refreshBranches,
+                  icon: _isRefreshing
+                      ? const SizedBox(
+                          width: 18, height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.refresh_rounded, size: 18),
+                  label: Text(_isRefreshing ? 'Memuat...' : 'Coba Refresh Cabang'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF6B35),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ── Info langkah selanjutnya ────────────────────────────
               Container(
                 width:      double.infinity,
                 padding:    const EdgeInsets.all(16),
@@ -237,7 +303,7 @@ class BranchSelectionScreen extends StatelessWidget {
                     _buildStep('1', 'Login ke web dashboard PAYZEN'),
                     _buildStep('2', 'Buka menu Pengaturan → Cabang'),
                     _buildStep('3', 'Tambahkan minimal 1 cabang'),
-                    _buildStep('4', 'Kembali login ke aplikasi ini'),
+                    _buildStep('4', 'Kembali ke sini dan tekan "Refresh"'),
                   ],
                 ),
               ),
