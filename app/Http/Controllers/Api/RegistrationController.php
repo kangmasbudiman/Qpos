@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Mail\RegistrationApproved;
 use App\Mail\RegistrationRejected;
+use App\Models\Branch;
 use App\Models\Merchant;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -147,6 +148,21 @@ class RegistrationController extends Controller
             $merchant->owner->update(['is_active' => true]);
         }
 
+        // Buat cabang utama otomatis jika belum ada
+        $branch = null;
+        if (!Branch::where('merchant_id', $merchant->id)->exists()) {
+            $branchCode = strtoupper(substr($companyCode, 0, 4)) . '01';
+            $branch = Branch::create([
+                'merchant_id' => $merchant->id,
+                'name'        => 'Cabang Utama',
+                'code'        => $branchCode,
+                'address'     => $merchant->address,
+                'phone'       => $merchant->phone,
+                'city'        => null,
+                'is_active'   => true,
+            ]);
+        }
+
         // Kirim email notifikasi ke merchant (fire & forget, gagal tidak menghentikan proses)
         $emailTo = $merchant->owner?->email ?? $merchant->email;
         if ($emailTo) {
@@ -167,6 +183,11 @@ class RegistrationController extends Controller
                 'owner_name'    => $merchant->owner->name ?? '-',
                 'owner_email'   => $merchant->owner->email ?? '-',
                 'approved_at'   => $merchant->approved_at,
+                'branch'        => $branch ? [
+                    'id'   => $branch->id,
+                    'name' => $branch->name,
+                    'code' => $branch->code,
+                ] : null,
             ],
         ]);
     }
