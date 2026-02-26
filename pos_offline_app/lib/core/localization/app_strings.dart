@@ -1,0 +1,343 @@
+/// Semua string UI — tersedia dalam Bahasa Indonesia ('id') dan English ('en').
+/// Penggunaan: `AppStrings.t('key')` atau langsung `AppStrings.s.key`
+class AppStrings {
+  AppStrings._();
+
+  static const Map<String, Map<String, String>> _data = {
+    // ── App / General ───────────────────────────────────────────────
+    'appName':          {'id': 'PAYZEN', 'en': 'PAYZEN'},
+    'ok':               {'id': 'OK', 'en': 'OK'},
+    'cancel':           {'id': 'Batal', 'en': 'Cancel'},
+    'save':             {'id': 'Simpan', 'en': 'Save'},
+    'saving':           {'id': 'Menyimpan...', 'en': 'Saving...'},
+    'saved':            {'id': 'Tersimpan', 'en': 'Saved'},
+    'saveChanges':      {'id': 'Simpan Perubahan', 'en': 'Save Changes'},
+    'delete':           {'id': 'Hapus', 'en': 'Delete'},
+    'edit':             {'id': 'Edit', 'en': 'Edit'},
+    'close':            {'id': 'Tutup', 'en': 'Close'},
+    'back':             {'id': 'Kembali', 'en': 'Back'},
+    'search':           {'id': 'Cari...', 'en': 'Search...'},
+    'all':              {'id': 'Semua', 'en': 'All'},
+    'success':          {'id': 'Berhasil', 'en': 'Success'},
+    'failed':           {'id': 'Gagal', 'en': 'Failed'},
+    'error':            {'id': 'Error', 'en': 'Error'},
+    'loading':          {'id': 'Memuat...', 'en': 'Loading...'},
+    'noData':           {'id': 'Tidak ada data', 'en': 'No data'},
+    'refresh':          {'id': 'Refresh', 'en': 'Refresh'},
+    'viewAll':          {'id': 'Lihat Semua', 'en': 'View All'},
+    'viewDetail':       {'id': 'Lihat Detail', 'en': 'View Details'},
+    'discardChanges':   {'id': 'Batalkan perubahan', 'en': 'Discard changes'},
+    'optional':         {'id': 'opsional', 'en': 'optional'},
+    'example':          {'id': 'Contoh', 'en': 'Example'},
+
+    // ── Navigation / Menu ────────────────────────────────────────────
+    'navHome':          {'id': 'Home', 'en': 'Home'},
+    'navPos':           {'id': 'Kasir', 'en': 'POS'},
+    'navProducts':      {'id': 'Produk', 'en': 'Products'},
+    'navCategories':    {'id': 'Kategori', 'en': 'Categories'},
+    'navPurchase':      {'id': 'PO', 'en': 'PO'},
+    'navOpname':        {'id': 'Opname', 'en': 'Opname'},
+    'navTransfer':      {'id': 'Transfer', 'en': 'Transfer'},
+    'navHistory':       {'id': 'Riwayat', 'en': 'History'},
+    'navProfitLoss':    {'id': 'Laba Rugi', 'en': 'P&L'},
+    'navSettings':      {'id': 'Setelan', 'en': 'Settings'},
+    'navInventoryReport': {'id': 'Inv. Report', 'en': 'Inv. Report'},
+
+    // ── Greetings ────────────────────────────────────────────────────
+    'greetMorning':     {'id': 'Selamat Pagi', 'en': 'Good Morning'},
+    'greetAfternoon':   {'id': 'Selamat Siang', 'en': 'Good Afternoon'},
+    'greetEvening':     {'id': 'Selamat Sore', 'en': 'Good Evening'},
+    'greetNight':       {'id': 'Selamat Malam', 'en': 'Good Night'},
+
+    // ── Sync ─────────────────────────────────────────────────────────
+    'syncing':          {'id': 'Sinkronisasi...', 'en': 'Syncing...'},
+    'syncFetchingData': {'id': 'Mengambil data terbaru dari server', 'en': 'Fetching latest data from server'},
+    'syncSuccess':      {'id': 'Sinkronisasi Berhasil', 'en': 'Sync Successful'},
+    'syncFailed':       {'id': 'Sinkronisasi Gagal', 'en': 'Sync Failed'},
+    'pendingSync':      {'id': 'Pending Sync', 'en': 'Pending Sync'},
+
+    // ── Dashboard ────────────────────────────────────────────────────
+    'todaySales':       {'id': 'Penjualan Hari Ini', 'en': "Today's Sales"},
+    'transactions':     {'id': 'Transaksi', 'en': 'Transactions'},
+    'activeProducts':   {'id': 'Produk Aktif', 'en': 'Active Products'},
+    'stockWarning':     {'id': 'Peringatan Stok!', 'en': 'Stock Alert!'},
+    'stockWarningTitle':{'id': 'Peringatan Stok', 'en': 'Stock Warning'},
+    'outOfStock':       {'id': 'Stok Habis', 'en': 'Out of Stock'},
+    'lowStock':         {'id': 'Stok Rendah', 'en': 'Low Stock'},
+    'outOfStockBadge':  {'id': 'HABIS', 'en': 'EMPTY'},
+    'lowStockBadge':    {'id': 'RENDAH', 'en': 'LOW'},
+    'last7DaysSales':   {'id': 'Penjualan 7 Hari Terakhir', 'en': 'Last 7 Days Sales'},
+    'yesterday':        {'id': 'Hari lalu', 'en': 'Yesterday'},
+    'today':            {'id': 'Hari ini', 'en': 'Today'},
+    'bestSelling':      {'id': 'Produk Terlaris', 'en': 'Best Selling Products'},
+    'sold':             {'id': 'Terjual', 'en': 'Sold'},
+    'recentActivity':   {'id': 'Aktivitas Terbaru', 'en': 'Recent Activity'},
+    'noActivity':       {'id': 'Belum ada aktivitas', 'en': 'No activity yet'},
+    'tapToSeeDetails':  {'id': 'Ketuk untuk melihat semua detail', 'en': 'Tap to see all details'},
+    'startTransaction': {'id': 'Mulai transaksi', 'en': 'Start transaction'},
+    'myTransactions':   {'id': 'Transaksi saya', 'en': 'My transactions'},
+    'profilePrefs':     {'id': 'Profil & preferensi', 'en': 'Profile & preferences'},
+    'manageStock':      {'id': 'Kelola stok', 'en': 'Manage stock'},
+    'manageCategories': {'id': 'Kelola kategori', 'en': 'Manage categories'},
+    'supplierPO':       {'id': 'PO supplier', 'en': 'Supplier PO'},
+    'manageSuppliers':  {'id': 'Kelola supplier', 'en': 'Manage suppliers'},
+    'uploadToServer':   {'id': 'Upload data ke server', 'en': 'Upload data to server'},
+    'salesReport':      {'id': 'Laporan penjualan', 'en': 'Sales report'},
+    'profitAnalysis':   {'id': 'Analisis keuntungan', 'en': 'Profit analysis'},
+    'inventoryReport':  {'id': 'Laporan inventory', 'en': 'Inventory report'},
+    'stockOpname':      {'id': 'Stok opname', 'en': 'Stock opname'},
+    'stockOpnameBtn':   {'id': 'Stock Opname', 'en': 'Stock Opname'},
+    'manageStockBtn':   {'id': 'Kelola Stok', 'en': 'Manage Stock'},
+    'stockTransfer':    {'id': 'Transfer stok', 'en': 'Stock transfer'},
+    'outOfStockMin':    {'id': 'Stok habis  •  Min: {0} {1}', 'en': 'Out of stock  •  Min: {0} {1}'},
+    'stockCurrent':     {'id': 'Stok: {0} {2}  •  Min: {1} {2}', 'en': 'Stock: {0} {2}  •  Min: {1} {2}'},
+    'productsOut':      {'id': '{0} produk habis', 'en': '{0} out of stock'},
+    'productsLow':      {'id': '{0} produk stok rendah', 'en': '{0} low stock'},
+    'productsOutLow':   {'id': '{0} produk habis • {1} produk stok rendah', 'en': '{0} out of stock • {1} low stock'},
+    'manageBranches':   {'id': 'Kelola Cabang', 'en': 'Manage Branches'},
+    'filterDataBranch': {'id': 'Filter data & cabang operasional', 'en': 'Filter data & operational branch'},
+    'filterDataView':   {'id': 'Filter Tampilan Data', 'en': 'Filter Data View'},
+    'allBranches':      {'id': 'Semua Cabang', 'en': 'All Branches'},
+    'showAllBranchData':{'id': 'Tampilkan data dari seluruh cabang', 'en': 'Show data from all branches'},
+    'operationalBranch':{'id': 'Cabang Operasional Aktif', 'en': 'Active Operational Branch'},
+    'branchChanged':    {'id': 'Cabang Diubah', 'en': 'Branch Changed'},
+
+    // ── POS Screen ───────────────────────────────────────────────────
+    'posTitle':         {'id': 'Kasir', 'en': 'Cashier'},
+    'searchProduct':    {'id': 'Cari produk...', 'en': 'Search products...'},
+    'outOfStockLabel':  {'id': 'Habis', 'en': 'Out of Stock'},
+    'noProducts':       {'id': 'Tidak ada produk', 'en': 'No products'},
+    'noProductsInCat':  {'id': 'Tidak ada produk di kategori ini', 'en': 'No products in this category'},
+    'tryFetchFromServer':{'id': 'Coba ambil data dari server', 'en': 'Try fetching data from server'},
+    'fetchingData':     {'id': 'Mengambil data...', 'en': 'Fetching data...'},
+    'fetchFromServer':  {'id': 'Ambil dari Server', 'en': 'Fetch from Server'},
+    'tryOtherCategory': {'id': 'Coba pilih kategori lain', 'en': 'Try another category'},
+    'showAll':          {'id': 'Tampilkan Semua', 'en': 'Show All'},
+    'currentOrder':     {'id': 'Pesanan', 'en': 'Order'},
+    'selectBranch':     {'id': 'Pilih Cabang', 'en': 'Select Branch'},
+    'hold':             {'id': 'Tahan', 'en': 'Hold'},
+    'cartEmpty':        {'id': 'Keranjang kosong', 'en': 'Cart is empty'},
+    'selectProductFirst':{'id': 'Pilih produk untuk ditambahkan', 'en': 'Select products to add'},
+    'subtotal':         {'id': 'Subtotal', 'en': 'Subtotal'},
+    'discount':         {'id': 'Diskon', 'en': 'Discount'},
+    'total':            {'id': 'Total', 'en': 'Total'},
+    'checkout':         {'id': 'Lanjutkan', 'en': 'Continue'},
+    'selectProductFirst2': {'id': 'Pilih produk dahulu', 'en': 'Select products first'},
+    'viewCart':         {'id': 'Lihat Keranjang', 'en': 'View Cart'},
+    'noBranchAvailable':{'id': 'Tidak ada cabang tersedia', 'en': 'No branches available'},
+    'heldTransactions': {'id': 'Transaksi Ditahan', 'en': 'Held Transactions'},
+    'holdThis':         {'id': 'Tahan Ini', 'en': 'Hold This'},
+    'noHeldTransactions':{'id': 'Tidak ada transaksi yang ditahan', 'en': 'No held transactions'},
+    'holdHint':         {'id': 'Tekan "Tahan Ini" untuk menyimpan transaksi', 'en': 'Press "Hold This" to save transaction'},
+    'resume':           {'id': 'Lanjutkan', 'en': 'Resume'},
+    'nameTransaction':  {'id': 'Beri Nama Transaksi', 'en': 'Name Transaction'},
+    'transactionNote':  {'id': 'Nama / catatan transaksi', 'en': 'Transaction name / notes'},
+    'holdTransaction':  {'id': 'Tahan Transaksi', 'en': 'Hold Transaction'},
+
+    // ── Inventory ────────────────────────────────────────────────────
+    'inventoryTitle':   {'id': 'Daftar Produk', 'en': 'Product List'},
+    'inventoryMgmt':    {'id': 'Manajemen Inventori', 'en': 'Inventory Management'},
+    'addProduct':       {'id': 'Tambah Produk', 'en': 'Add Product'},
+    'addFirstProduct':  {'id': 'Tambah Produk Pertama', 'en': 'Add First Product'},
+    'noProducts2':      {'id': 'Belum ada produk', 'en': 'No products yet'},
+    'noResults':        {'id': 'Tidak ada hasil', 'en': 'No results'},
+    'noProductsAdd':    {'id': 'Belum ada produk. Tambah produk baru sekarang!', 'en': 'No products yet. Add new product!'},
+    'tryChangeFilter':  {'id': 'Coba ubah kata kunci atau filter pencarian', 'en': 'Try changing search terms or filters'},
+    'searchProductSku': {'id': 'Cari produk, SKU...', 'en': 'Search products, SKU...'},
+    'totalProducts':    {'id': 'Total Produk', 'en': 'Total Products'},
+    'totalStock':       {'id': 'Total Stok', 'en': 'Total Stock'},
+    'sellingPrice':     {'id': 'Harga Jual', 'en': 'Selling Price'},
+    'costPrice':        {'id': 'Harga Modal', 'en': 'Cost Price'},
+    'currentStock':     {'id': 'Stok Saat Ini', 'en': 'Current Stock'},
+    'minStock':         {'id': 'Min. Stok', 'en': 'Min. Stock'},
+    'description':      {'id': 'Deskripsi', 'en': 'Description'},
+    'waitingSync':      {'id': 'Menunggu sinkronisasi ke server', 'en': 'Waiting to sync to server'},
+    'changeStock':      {'id': 'Ubah Stok', 'en': 'Change Stock'},
+    'newStockAmount':   {'id': 'Jumlah Stok Baru', 'en': 'New Stock Amount'},
+    'enterStockAmount': {'id': 'Masukkan jumlah stok', 'en': 'Enter stock amount'},
+    'notes':            {'id': 'Catatan', 'en': 'Notes'},
+    'notesHint':        {'id': 'Misal: stok opname, tambah dari supplier', 'en': 'E.g.: stock opname, add from supplier'},
+    'invalidInput':     {'id': 'Input Tidak Valid', 'en': 'Invalid Input'},
+    'enterValidStock':  {'id': 'Masukkan angka stok yang benar', 'en': 'Enter valid stock amount'},
+    'deleteProduct':    {'id': 'Hapus Produk', 'en': 'Delete Product'},
+    'deleteProductMsg': {'id': 'Produk akan dinonaktifkan dan akan disinkronkan ke server.', 'en': 'Product will be deactivated and synced to server.'},
+    'productDataUpdated':{'id': 'Data produk berhasil diperbarui dari server', 'en': 'Product data updated from server'},
+    'cannotConnectServer':{'id': 'Tidak dapat terhubung ke server', 'en': 'Cannot connect to server'},
+
+    // ── Sales Report ─────────────────────────────────────────────────
+    'salesReportTitle': {'id': 'Laporan Penjualan', 'en': 'Sales Report'},
+    'export':           {'id': 'Export', 'en': 'Export'},
+    'exportPdf':        {'id': 'Export PDF', 'en': 'Export PDF'},
+    'exportExcel':      {'id': 'Export Excel', 'en': 'Export Excel'},
+    'from':             {'id': 'Dari', 'en': 'From'},
+    'until':            {'id': 'Sampai', 'en': 'Until'},
+    'paymentMethod':    {'id': 'Metode', 'en': 'Method'},
+    'cash':             {'id': 'Tunai', 'en': 'Cash'},
+    'transfer':         {'id': 'Transfer', 'en': 'Transfer'},
+    'debit':            {'id': 'Debit', 'en': 'Debit'},
+    'credit':           {'id': 'Kredit', 'en': 'Credit'},
+    'searchInvoice':    {'id': 'Cari invoice / customer...', 'en': 'Search invoice / customer...'},
+    'average':          {'id': 'Rata-rata', 'en': 'Average'},
+    'noSalesData':      {'id': 'Belum ada data penjualan', 'en': 'No sales data'},
+    'transactionDetail':{'id': 'Detail Transaksi', 'en': 'Transaction Details'},
+    'invoice':          {'id': 'Invoice', 'en': 'Invoice'},
+    'date':             {'id': 'Tanggal', 'en': 'Date'},
+    'customer':         {'id': 'Customer', 'en': 'Customer'},
+    'item':             {'id': 'Item', 'en': 'Item'},
+    'status':           {'id': 'Status', 'en': 'Status'},
+    'price':            {'id': 'Harga', 'en': 'Price'},
+    'qty':              {'id': 'Qty', 'en': 'Qty'},
+    'noItemDetails':    {'id': 'Tidak ada detail item', 'en': 'No item details'},
+    'product':          {'id': 'Produk', 'en': 'Product'},
+    'noDataToExport':   {'id': 'Tidak ada data untuk diekspor', 'en': 'No data to export'},
+    'creatingPdf':      {'id': 'Membuat PDF...', 'en': 'Creating PDF...'},
+    'creatingExcel':    {'id': 'Membuat Excel...', 'en': 'Creating Excel...'},
+    'transactionList':  {'id': 'Daftar Transaksi', 'en': 'Transaction List'},
+    'totalSales':       {'id': 'Total Penjualan', 'en': 'Total Sales'},
+    'totalDiscount':    {'id': 'Total Diskon', 'en': 'Total Discount'},
+    'totalTransactions':{'id': 'Total Transaksi', 'en': 'Total Transactions'},
+    'avgTransaction':   {'id': 'Rata-rata Transaksi', 'en': 'Avg. Transaction'},
+    'netSales':         {'id': 'Total Penjualan (Neto)', 'en': 'Net Sales'},
+    'grossSales':       {'id': 'Total Bruto', 'en': 'Gross Sales'},
+    'totalTax':         {'id': 'Total Pajak', 'en': 'Total Tax'},
+    'byPaymentMethod':  {'id': 'Per Metode Bayar', 'en': 'By Payment Method'},
+    'unitPrice':        {'id': 'Harga Satuan', 'en': 'Unit Price'},
+    'excelSaved':       {'id': 'Excel Tersimpan', 'en': 'Excel Saved'},
+    'failedCreatePdf':  {'id': 'Gagal membuat PDF', 'en': 'Failed to create PDF'},
+    'failedCreateExcel':{'id': 'Gagal membuat Excel', 'en': 'Failed to create Excel'},
+
+    // ── Settings ─────────────────────────────────────────────────────
+    'settingsTitle':    {'id': 'Setelan', 'en': 'Settings'},
+    'manageBranchInfo': {'id': 'Kelola informasi cabang', 'en': 'Manage branch info'},
+    'accountInfo':      {'id': 'Info Akun', 'en': 'Account Info'},
+    'name':             {'id': 'Nama', 'en': 'Name'},
+    'email':            {'id': 'Email', 'en': 'Email'},
+    'role':             {'id': 'Role', 'en': 'Role'},
+    'merchantId':       {'id': 'Merchant ID', 'en': 'Merchant ID'},
+    'displaySection':   {'id': 'Tampilan', 'en': 'Display'},
+    'darkMode':         {'id': 'Mode Gelap', 'en': 'Dark Mode'},
+    'darkModeOn':       {'id': 'Aktif — tampilan gelap', 'en': 'Active — dark display'},
+    'darkModeOff':      {'id': 'Nonaktif — tampilan terang', 'en': 'Inactive — light display'},
+    'themeLight':       {'id': 'Terang', 'en': 'Light'},
+    'themeDark':        {'id': 'Gelap', 'en': 'Dark'},
+    'languageSection':  {'id': 'Bahasa', 'en': 'Language'},
+    'languageLabel':    {'id': 'Bahasa Aplikasi', 'en': 'App Language'},
+    'languageId':       {'id': 'Bahasa Indonesia', 'en': 'Bahasa Indonesia'},
+    'languageEn':       {'id': 'English', 'en': 'English'},
+    'branchInfo':       {'id': 'Informasi Cabang', 'en': 'Branch Information'},
+    'branchName':       {'id': 'Nama Cabang', 'en': 'Branch Name'},
+    'branchCode':       {'id': 'Kode Cabang', 'en': 'Branch Code'},
+    'city':             {'id': 'Kota', 'en': 'City'},
+    'fullAddress':      {'id': 'Alamat Lengkap', 'en': 'Full Address'},
+    'phone':            {'id': 'Nomor Telepon', 'en': 'Phone Number'},
+    'receiptPreview':   {'id': 'Pratinjau Info Struk', 'en': 'Receipt Preview'},
+    'latestStaff':      {'id': 'Staff Terbaru', 'en': 'Latest Staff'},
+    'noStaff':          {'id': 'Belum ada staff', 'en': 'No staff yet'},
+    'addFirstStaff':    {'id': 'Tambah Staff Pertama', 'en': 'Add First Staff'},
+    'changeBranch':     {'id': 'Ganti Cabang', 'en': 'Change Branch'},
+    'logout':           {'id': 'Keluar', 'en': 'Logout'},
+    'logoutDesc':       {'id': 'Logout dari akun ini', 'en': 'Logout from this account'},
+    'logoutConfirm':    {'id': 'Yakin ingin keluar dari akun ini?', 'en': 'Are you sure you want to logout?'},
+    'branchInfoSaved':  {'id': 'Informasi cabang berhasil disimpan', 'en': 'Branch info saved successfully'},
+    'branchNameRequired':{'id': 'Nama cabang tidak boleh kosong', 'en': 'Branch name is required'},
+    'sessionExpired':   {'id': 'Sesi berakhir, silakan login ulang', 'en': 'Session expired, please login again'},
+    'failedSave':       {'id': 'Gagal menyimpan', 'en': 'Failed to save'},
+
+    // ── Staff ────────────────────────────────────────────────────────
+    'deleteStaff':      {'id': 'Hapus Staff', 'en': 'Delete Staff'},
+    'deleteStaffMsg':   {'id': 'Hapus "%s"? Akun ini tidak bisa login lagi.', 'en': 'Delete "%s"? This account will no longer be able to login.'},
+    'staffDeleted':     {'id': 'Staff dihapus', 'en': 'Staff deleted'},
+    'failedDelete':     {'id': 'Gagal menghapus', 'en': 'Failed to delete'},
+    'addStaff':         {'id': 'Tambah Staff Baru', 'en': 'Add New Staff'},
+    'editStaff':        {'id': 'Edit Staff', 'en': 'Edit Staff'},
+    'updateStaffInfo':  {'id': 'Perbarui informasi staff', 'en': 'Update staff information'},
+    'createStaffDesc':  {'id': 'Buat akun untuk kasir atau manajer', 'en': 'Create account for cashier or manager'},
+    'fullName':         {'id': 'Nama Lengkap', 'en': 'Full Name'},
+    'phoneOptional':    {'id': 'Nomor Telepon (opsional)', 'en': 'Phone Number (optional)'},
+    'newPassword':      {'id': 'Password Baru (kosongkan jika tidak diubah)', 'en': 'New Password (leave blank to keep)'},
+    'password':         {'id': 'Password', 'en': 'Password'},
+    'confirmPassword':  {'id': 'Konfirmasi Password', 'en': 'Confirm Password'},
+    'passwordMatch':    {'id': 'Password cocok', 'en': 'Passwords match'},
+    'passwordNoMatch':  {'id': 'Password tidak cocok', 'en': 'Passwords do not match'},
+    'staffRole':        {'id': 'Role Staff', 'en': 'Staff Role'},
+    'cashier':          {'id': 'Kasir', 'en': 'Cashier'},
+    'manager':          {'id': 'Manajer', 'en': 'Manager'},
+    'nameRequired':     {'id': 'Nama tidak boleh kosong', 'en': 'Name is required'},
+    'emailRequired':    {'id': 'Email tidak boleh kosong', 'en': 'Email is required'},
+    'passwordRequired': {'id': 'Password tidak boleh kosong', 'en': 'Password is required'},
+    'passwordMismatch': {'id': 'Konfirmasi password tidak cocok', 'en': 'Passwords do not match'},
+    'staffAdded':       {'id': 'Staff berhasil ditambahkan', 'en': 'Staff added successfully'},
+    'staffUpdated':     {'id': 'Data staff diperbarui', 'en': 'Staff data updated'},
+    'deactivate':       {'id': 'Nonaktifkan', 'en': 'Deactivate'},
+    'activate':         {'id': 'Aktifkan', 'en': 'Activate'},
+    'newest':           {'id': 'Terbaru', 'en': 'Newest'},
+    'addStaffBtn':      {'id': 'Tambah Staff', 'en': 'Add Staff'},
+    'saveChangesBtn':   {'id': 'Simpan Perubahan', 'en': 'Save Changes'},
+
+    // ── Role Labels ──────────────────────────────────────────────────
+    'roleOwner':        {'id': 'Pemilik', 'en': 'Owner'},
+    'roleAdmin':        {'id': 'Admin', 'en': 'Admin'},
+    'roleCashier':      {'id': 'Kasir', 'en': 'Cashier'},
+    'roleManager':      {'id': 'Manajer', 'en': 'Manager'},
+
+    // ── Login ────────────────────────────────────────────────────────
+    'welcome':          {'id': 'Selamat Datang!', 'en': 'Welcome!'},
+    'enterCompanyCode': {'id': 'Masukkan kode company Anda', 'en': 'Enter your company code'},
+    'companyCode':      {'id': 'Kode Company', 'en': 'Company Code'},
+    'companyCodeHint':  {'id': 'Contoh: TOKO1234', 'en': 'Example: STORE1234'},
+    'continueBtn':      {'id': 'Lanjutkan', 'en': 'Continue'},
+    'companyCodeInfo':  {'id': 'Kode company diberikan oleh admin sistem', 'en': 'Company code is provided by system admin'},
+    'loginBtn':         {'id': 'Masuk', 'en': 'Login'},
+    'enterCredentials': {'id': 'Masukkan kredensial akun Anda', 'en': 'Enter your account credentials'},
+    'emailHint':        {'id': 'Masukkan email Anda', 'en': 'Enter your email'},
+    'passwordHint':     {'id': 'Masukkan password Anda', 'en': 'Enter your password'},
+    'rememberMe':       {'id': 'Ingat saya', 'en': 'Remember me'},
+    'change':           {'id': 'Ganti', 'en': 'Change'},
+
+    // ── Branch Selection ─────────────────────────────────────────────
+    'selectBranchTitle':{'id': 'Pilih Cabang', 'en': 'Select Branch'},
+    'selectBranchDesc': {'id': 'Pilih cabang yang akan Anda kelola', 'en': 'Select the branch you want to manage'},
+    'noBranches':       {'id': 'Tidak ada cabang tersedia', 'en': 'No branches available'},
+
+    // ── Profit Loss ──────────────────────────────────────────────────
+    'profitLossTitle':  {'id': 'Laba Rugi', 'en': 'Profit & Loss'},
+
+    // ── Purchase ─────────────────────────────────────────────────────
+    'purchaseTitle':    {'id': 'Purchase Order', 'en': 'Purchase Order'},
+
+    // ── Category ─────────────────────────────────────────────────────
+    'categoryTitle':    {'id': 'Kategori', 'en': 'Categories'},
+
+    // ── Checkout ─────────────────────────────────────────────────────
+    'checkoutTitle':    {'id': 'Pembayaran', 'en': 'Checkout'},
+    'processPayment':   {'id': 'Proses Pembayaran', 'en': 'Process Payment'},
+    'change2':          {'id': 'Kembalian', 'en': 'Change'},
+    'paymentSuccess':   {'id': 'Pembayaran Berhasil', 'en': 'Payment Successful'},
+  };
+
+  static String _locale = 'id';
+
+  /// Set bahasa aktif — dipanggil oleh LanguageService
+  static void setLocale(String locale) {
+    _locale = locale == 'en' ? 'en' : 'id';
+  }
+
+  /// Ambil string berdasarkan key dan locale aktif.
+  static String t(String key) {
+    final map = _data[key];
+    if (map == null) return key;
+    return map[_locale] ?? map['id'] ?? key;
+  }
+
+  /// Translate dengan placeholder %s
+  static String tArgs(String key, List<String> args) {
+    var str = t(key);
+    for (final arg in args) {
+      str = str.replaceFirst('%s', arg);
+    }
+    return str;
+  }
+
+  /// Locale saat ini
+  static String get currentLocale => _locale;
+}
