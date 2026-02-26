@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\ProfitLossController;
 use App\Http\Controllers\Api\StockOpnameController;
 use App\Http\Controllers\Api\BackupController;
+use App\Http\Controllers\Api\RegistrationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,6 +27,7 @@ use App\Http\Controllers\Api\BackupController;
 // Public routes
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
+    Route::post('check-registration', [AuthController::class, 'checkRegistrationStatus']);
     Route::post('lookup-company', [AuthController::class, 'lookupCompany']);
     Route::post('login', [AuthController::class, 'login']);
 });
@@ -96,6 +98,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // Backup
     Route::get('backup/download', [BackupController::class, 'download']);
     Route::post('backup/restore', [BackupController::class, 'restore']);
+
+    // Registration Management (super_admin only - untuk Owner App)
+    Route::middleware('super_admin')->prefix('registrations')->group(function () {
+        Route::get('/', [RegistrationController::class, 'index']);
+        Route::get('stats', [RegistrationController::class, 'stats']);
+        Route::get('{id}', [RegistrationController::class, 'show']);
+        Route::post('{id}/approve', [RegistrationController::class, 'approve']);
+        Route::post('{id}/reject', [RegistrationController::class, 'reject']);
+    });
 
     // Stock Management
     Route::prefix('stocks')->group(function () {

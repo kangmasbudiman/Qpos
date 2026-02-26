@@ -13,8 +13,7 @@ use Illuminate\Support\Str;
 class AuthController extends Controller
 {
     /**
-     * Register a new user (merchant owner)
-     * Auto-generate company_code saat register
+     * Register a new merchant owner - status pending menunggu approval super_admin
      */
     public function register(Request $request)
     {
@@ -25,6 +24,7 @@ class AuthController extends Controller
             'phone'         => 'nullable|string|max:20',
             'merchant_name' => 'required|string|max:255',
             'business_type' => 'nullable|string|max:255',
+            'address'       => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -36,44 +36,47 @@ class AuthController extends Controller
         }
 
         try {
-            // Buat user sebagai owner
+            // Buat user sebagai owner tapi belum aktif (menunggu approval)
             $user = User::create([
                 'name'      => $request->name,
                 'email'     => $request->email,
                 'password'  => Hash::make($request->password),
                 'phone'     => $request->phone,
                 'role'      => 'owner',
-                'is_active' => true,
+                'is_active' => false,
             ]);
 
-            // Generate company_code unik (8 karakter huruf besar)
-            do {
-                $companyCode = strtoupper(Str::random(8));
-            } while (Merchant::where('company_code', $companyCode)->exists());
-
-            // Buat merchant
+            // Buat merchant dengan status pending (belum dapat company_code)
             $merchant = Merchant::create([
-                'name'          => $request->merchant_name,
-                'company_code'  => $companyCode,
-                'business_type' => $request->business_type,
-                'owner_user_id' => $user->id,
-                'is_active'     => true,
+                'name'                => $request->merchant_name,
+                'business_type'       => $request->business_type,
+                'address'             => $request->address,
+                'phone'               => $request->phone,
+                'email'               => $request->email,
+                'owner_user_id'       => $user->id,
+                'is_active'           => false,
+                'registration_status' => 'pending',
             ]);
 
             // Update user dengan merchant_id
             $user->update(['merchant_id' => $merchant->id]);
 
-            // Buat token
-            $token = $user->createToken('auth_token')->plainTextToken;
-
             return response()->json([
                 'success' => true,
-                'message' => 'Registration successful',
+                'message' => 'Pendaftaran berhasil. Menunggu persetujuan dari admin. Anda akan mendapatkan kode perusahaan setelah disetujui.',
                 'data'    => [
-                    'user'         => $user->load('merchant'),
-                    'token'        => $token,
-                    'token_type'   => 'Bearer',
-                    'company_code' => $companyCode,
+                    'user' => [
+                        'id'    => $user->id,
+                        'name'  => $user->name,
+                        'email' => $user->email,
+                        'phone' => $user->phone,
+                    ],
+                    'merchant' => [
+                        'id'                  => $merchant->id,
+                        'name'                => $merchant->name,
+                        'business_type'       => $merchant->business_type,
+                        'registration_status' => $merchant->registration_status,
+                    ],
                 ]
             ], 201);
 
@@ -83,6 +86,57 @@ class AuthController extends Controller
                 'message' => 'Registration failed: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Check registration status by email
+     */
+    public function checkRegistrationStatus(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        $user = User::where('email', $request->email)
+            ->where('role', 'owner')
+            ->with('merchant')
+            ->first();
+
+        if (!$user || !$user->merchant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email tidak ditemukan'
+            ], 404);
+        }
+
+        $merchant = $user->merchant;
+        $data = [
+            'registration_status' => $merchant->registration_status,
+            'merchant_name'       => $merchant->name,
+        ];
+
+        if ($merchant->registration_status === 'approved') {
+            $data['company_code'] = $merchant->company_code;
+            $data['message']      = 'Pendaftaran Anda telah disetujui. Gunakan kode perusahaan untuk login.';
+        } elseif ($merchant->registration_status === 'rejected') {
+            $data['rejection_reason'] = $merchant->rejection_reason;
+            $data['message']          = 'Pendaftaran Anda ditolak.';
+        } else {
+            $data['message'] = 'Pendaftaran Anda sedang menunggu persetujuan admin.';
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => $data,
+        ]);
     }
 
     /**
@@ -131,12 +185,12 @@ class AuthController extends Controller
 
     /**
      * Login user dengan company_code
-     * company_code dipakai untuk validasi bahwa user milik merchant tersebut
+     * Super admin cukup email + password (tanpa company_code)
      */
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'company_code' => 'required|string|max:10',
+            'company_code' => 'nullable|string|max:10',
             'email'        => 'required|email',
             'password'     => 'required|string',
         ]);
@@ -148,6 +202,42 @@ class AuthController extends Controller
                 'errors'  => $validator->errors()
             ], 422);
         }
+
+        // --- Login Super Admin (tanpa company_code) ---
+        if (empty($request->company_code)) {
+            $user = User::where('email', $request->email)
+                ->where('role', 'super_admin')
+                ->first();
+
+            if (!$user || !Hash::check($request->password, $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid credentials'
+                ], 401);
+            }
+
+            if (!$user->is_active) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Account is inactive'
+                ], 403);
+            }
+
+            $user->tokens()->delete();
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Login successful',
+                'data'    => [
+                    'user'       => $user->makeHidden(['remember_token']),
+                    'token'      => $token,
+                    'token_type' => 'Bearer',
+                ]
+            ]);
+        }
+
+        // --- Login Owner/Cashier/Manager (dengan company_code) ---
 
         // Cari merchant berdasarkan company_code
         $merchant = Merchant::where('company_code', strtoupper($request->company_code))
