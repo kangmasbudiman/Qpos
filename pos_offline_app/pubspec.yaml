@@ -69,6 +69,10 @@ dependencies:
   # Share file
   share_plus: ^10.1.4
 
+  # Bluetooth Thermal Printer (ESC/POS, POS58B compatible, AGP 8.7+ safe)
+  print_bluetooth_thermal: ^1.1.9
+  esc_pos_utils_plus: ^2.0.3
+
   # File Picker (untuk restore backup)
   file_picker: ^8.1.2
   http_parser: ^4.0.0
@@ -81,6 +85,9 @@ dependencies:
 
   # Charts
   fl_chart: ^0.70.2
+
+  # QR Code (untuk Customer Display URL)
+  qr_flutter: ^4.1.0
 
   # Note: Bluetooth thermal printer packages not yet compatible with AGP 8.7+
   # Print receipt via PDF (using 'printing' package already included)

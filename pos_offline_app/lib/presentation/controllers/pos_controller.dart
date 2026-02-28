@@ -19,6 +19,7 @@ import '../../services/auth/auth_service.dart';
 import '../../services/dashboard/dashboard_service.dart';
 import '../../services/database/database_helper.dart';
 import '../../services/print/thermal_printer_service.dart';
+import '../../services/print/bluetooth_printer_service.dart';
 import '../../services/sync/sync_service.dart';
 
 class CartItem {
@@ -100,6 +101,9 @@ class POSController extends GetxController {
 
   // Hold/Resume
   final RxList<Map<String, dynamic>> _heldTransactions = <Map<String, dynamic>>[].obs;
+
+  // Customer Display debounce timer
+  Timer? _displayDebounceTimer;
 
   // Getters
   List<CartItem> get cartItems => _cartItems;
@@ -507,17 +511,93 @@ class POSController extends GetxController {
   void _updateCartTotals() {
     double total = 0.0;
     double discount = 0.0;
-    
+
     for (final item in _cartItems) {
       total += item.subtotal;
       discount += item.totalDiscount;
     }
-    
+
     _totalAmount.value = total;
     _totalDiscount.value = discount;
-    
+
     // Update change amount
     _updateChangeAmount();
+
+    // Push ke customer display (debounce 1 detik)
+    _scheduleDisplayUpdate();
+  }
+
+  /// Jadwalkan push cart ke customer display (debounce 1 detik)
+  void _scheduleDisplayUpdate() {
+    _displayDebounceTimer?.cancel();
+    _displayDebounceTimer = Timer(const Duration(seconds: 1), _pushDisplayUpdate);
+  }
+
+  /// Kirim data cart ke VPS untuk ditampilkan di customer display
+  Future<void> _pushDisplayUpdate() async {
+    final token    = _authService.authToken;
+    final branchId = _authService.selectedBranch?.id ?? _authService.currentUser?.branchId;
+    final user     = _authService.currentUser;
+
+    if (token.isEmpty || branchId == null) return;
+
+    // Bangun payload items dari cart saat ini
+    final items = _cartItems.map((item) => {
+      'product_name': item.product.name,
+      'quantity':     item.quantity,
+      'subtotal':     item.subtotal,
+      'discount':     item.totalDiscount,
+    }).toList();
+
+    try {
+      await http.post(
+        Uri.parse('${AppConstants.baseUrl}/display/update'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept':        'application/json',
+          'Content-Type':  'application/json',
+        },
+        body: jsonEncode({
+          'branch_id':  branchId,
+          'store_name': user?.companyName ?? 'Toko',
+          'items':      items,
+          'total':      _totalAmount.value,
+        }),
+      ).timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // Silent — tidak boleh mengganggu UI kasir
+    }
+  }
+
+  @override
+  void onClose() {
+    _displayDebounceTimer?.cancel();
+    // Clear display saat kasir logout / controller di-dispose
+    _clearDisplayOnServer();
+    super.onClose();
+  }
+
+  /// Reset tampilan customer display ke kosong
+  Future<void> _clearDisplayOnServer() async {
+    final token    = _authService.authToken;
+    final branchId = _authService.selectedBranch?.id ?? _authService.currentUser?.branchId;
+    if (token.isEmpty || branchId == null) return;
+    try {
+      await http.post(
+        Uri.parse('${AppConstants.baseUrl}/display/update'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept':        'application/json',
+          'Content-Type':  'application/json',
+        },
+        body: jsonEncode({
+          'branch_id':  branchId,
+          'store_name': _authService.currentUser?.companyName ?? 'Toko',
+          'items':      <dynamic>[],
+          'total':      0,
+        }),
+      ).timeout(const Duration(seconds: 3));
+    } catch (_) {}
   }
 
   /// Update cash amount
@@ -1025,14 +1105,29 @@ class POSController extends GetxController {
     );
   }
 
-  /// Print receipt via ThermalPrinterService
+  /// Print receipt — coba Bluetooth dulu, fallback ke PDF
   Future<void> _printReceipt(Sale sale, {List<Map<String, dynamic>>? paymentEntries}) async {
+    // 1. Coba Bluetooth thermal printer
+    try {
+      final btService = Get.find<BluetoothPrinterService>();
+      if (btService.savedPrinterAddress.value.isNotEmpty) {
+        final success = await btService.printReceipt(sale, paymentEntries: paymentEntries);
+        if (success) return;
+        // Gagal BT → fallback ke PDF
+        Get.snackbar(
+          'Info',
+          'Printer Bluetooth gagal, menggunakan PDF...',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 2),
+        );
+      }
+    } catch (_) {}
+
+    // 2. Fallback ke PDF (printing package)
     try {
       final printerService = Get.find<ThermalPrinterService>();
       await printerService.printReceipt(sale, paymentEntries: paymentEntries);
-    } catch (_) {
-      // ThermalPrinterService belum diregister atau error - skip silently
-    }
+    } catch (_) {}
   }
 
   Widget _receiptRow(String label, String value,
@@ -1065,6 +1160,9 @@ class POSController extends GetxController {
     _selectedCustomer.value = null;
     _paymentEntries.clear();
     _totalPaid.value = 0.0;
+    // Reset customer display setelah transaksi selesai
+    _displayDebounceTimer?.cancel();
+    _pushDisplayUpdate();
   }
 
   /// Set customer

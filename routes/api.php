@@ -17,12 +17,17 @@ use App\Http\Controllers\Api\ProfitLossController;
 use App\Http\Controllers\Api\StockOpnameController;
 use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\RegistrationController;
+use App\Http\Controllers\DisplayController;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
 */
+
+// Customer Display — polling JSON (tanpa auth, bisa diakses browser)
+Route::get('display/{branchId}', [DisplayController::class, 'poll'])
+    ->where('branchId', '[0-9]+');
 
 // Public routes
 Route::prefix('auth')->group(function () {
@@ -117,6 +122,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('transfer', [StockController::class, 'transfer']);
         Route::get('movements', [StockController::class, 'movements']);
     });
+
+    // Customer Display — push cart dari Flutter kasir
+    Route::post('display/update', [DisplayController::class, 'update']);
 
     // Stock Opname
     Route::prefix('stock-opnames')->group(function () {

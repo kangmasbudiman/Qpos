@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../controllers/pos_controller.dart';
 import '../widgets/connectivity_indicator.dart';
+import '../../core/constants/app_constants.dart';
 import '../../data/models/product_model.dart';
 import '../../services/auth/auth_service.dart';
 
@@ -192,6 +195,38 @@ class _POSScreenState extends State<POSScreen> {
               color:  Colors.white.withValues(alpha: 0.08),
             ),
             const SizedBox(height: 16),
+
+            // ── Customer Display QR ──
+            Obx(() {
+              final branch = authService.selectedBranch;
+              final branchId = branch?.id ?? authService.currentUser?.branchId;
+              if (branchId == null) return const SizedBox.shrink();
+              return GestureDetector(
+                onTap: () => _showDisplayQR(branchId),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 40, height: 40,
+                      decoration: BoxDecoration(
+                        color:        Colors.white.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border:       Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                      ),
+                      child: const Icon(Icons.monitor_rounded, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Display',
+                      style: TextStyle(
+                        color:    Colors.white.withValues(alpha: 0.5),
+                        fontSize: 8,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ),
+              );
+            }),
 
             // ── Connectivity dot ──
             const ConnectivityDot(),
@@ -1612,6 +1647,98 @@ void _showHoldTransactionDialog(POSController controller) {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('Tahan Transaksi'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Customer Display QR Dialog ──────────────────────────────────────────
+  void _showDisplayQR(int branchId) {
+    // Ganti /api dengan URL web biasa
+    final baseWeb = AppConstants.baseUrl.replaceAll('/api', '');
+    final url     = '$baseWeb/display/$branchId';
+
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.all(24),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Customer Display',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A1D26)),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Scan QR atau buka URL di browser device customer',
+              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: QrImageView(
+                data:           url,
+                version:        QrVersions.auto,
+                size:           200,
+                backgroundColor: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            // URL box + copy button
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F5F7),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      url,
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF1A1D26)),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: url));
+                      Get.snackbar(
+                        'Disalin',
+                        'URL berhasil disalin',
+                        snackPosition: SnackPosition.BOTTOM,
+                        duration: const Duration(seconds: 2),
+                        backgroundColor: const Color(0xFF4CAF50),
+                        colorText: Colors.white,
+                      );
+                    },
+                    child: const Icon(Icons.copy_rounded, size: 16, color: Color(0xFFFF6B35)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Tutup', style: TextStyle(color: Color(0xFFFF6B35))),
           ),
         ],
       ),

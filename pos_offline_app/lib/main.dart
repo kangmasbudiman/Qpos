@@ -30,6 +30,7 @@ import 'services/inventory/stock_opname_service.dart';
 import 'services/inventory/low_stock_notification_service.dart';
 import 'presentation/screens/settings_screen.dart';
 import 'presentation/screens/staff_screen.dart';
+import 'presentation/screens/branch_management_screen.dart';
 import 'presentation/controllers/connectivity_controller.dart';
 import 'presentation/controllers/auth_controller.dart';
 import 'presentation/controllers/category_controller.dart';
@@ -44,9 +45,11 @@ import 'services/purchase/purchase_service.dart';
 import 'services/supplier/supplier_service.dart';
 import 'services/dashboard/dashboard_service.dart';
 import 'services/print/thermal_printer_service.dart';
+import 'services/print/bluetooth_printer_service.dart';
 import 'services/theme/theme_service.dart';
 import 'services/language/language_service.dart';
 import 'services/backup/backup_service.dart';
+import 'services/branch/branch_service.dart';
 import 'core/theme/app_theme.dart';
 
 void main() async {
@@ -88,7 +91,9 @@ Future<void> _initializeServices() async {
   Get.put(StockOpnameService(), permanent: true);
   Get.put(LowStockNotificationService(), permanent: true);
   Get.put(ThermalPrinterService(), permanent: true);
+  Get.put(BluetoothPrinterService(), permanent: true);
   Get.put(BackupService(), permanent: true);
+  Get.put(BranchService(), permanent: true);
   Get.put(RegistrationService(), permanent: true);
   Get.put(AuthController(), permanent: true);
   Get.put(CategoryController(), permanent: true);
@@ -203,6 +208,10 @@ class POSApp extends StatelessWidget {
                 transitionDuration: const Duration(milliseconds: 250)),
               GetPage(name: '/staff',
                 page: () => StaffScreen(),
+                transition: Transition.rightToLeft,
+                transitionDuration: const Duration(milliseconds: 250)),
+              GetPage(name: '/branch-management',
+                page: () => const BranchManagementScreen(),
                 transition: Transition.rightToLeft,
                 transitionDuration: const Duration(milliseconds: 250)),
               GetPage(name: '/stock-opname',

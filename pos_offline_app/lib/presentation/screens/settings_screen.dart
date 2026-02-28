@@ -12,6 +12,8 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/branch_model.dart';
 import '../../services/auth/auth_service.dart';
 import '../../services/backup/backup_service.dart';
+import '../../services/print/bluetooth_printer_service.dart';
+import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import '../../services/language/language_service.dart';
 import '../../services/theme/theme_service.dart';
 
@@ -46,6 +48,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isRestoring = false;
   String? _lastBackupPath;
 
+  // Printer BT state
+  bool _isScanningPrinter = false;
+  bool _isTestPrinting = false;
+
   @override
   void initState() {
     super.initState();
@@ -53,6 +59,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final role = _authService.currentUser?.role ?? '';
     if (role == 'owner' || role == 'manager') {
       _loadStaff();
+    }
+    if (role == 'owner') {
+      _authService.refreshBranches();
     }
     // Track dirty state
     for (final ctrl in [_nameCtrl, _codeCtrl, _addressCtrl, _phoneCtrl, _cityCtrl]) {
@@ -1098,6 +1107,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (user?.role == 'owner' || user?.role == 'manager')
                   const SizedBox(height: 16),
 
+                // ── Manajemen Cabang (owner only) ─────────────────
+                if (user?.role == 'owner')
+                  _sectionCard(
+                    icon:  Icons.account_tree_rounded,
+                    title: 'Manajemen Cabang',
+                    color: const Color(0xFFFF6B35),
+                    child: Obx(() {
+                      final count = _authService.branches.length;
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.storefront_rounded,
+                              color: Color(0xFFFF6B35), size: 20),
+                        ),
+                        title: const Text('Tambah & Kelola Cabang',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        subtitle: Text(
+                          count == 0 ? 'Belum ada cabang' : '$count cabang terdaftar',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        trailing: const Icon(Icons.arrow_forward_ios_rounded,
+                            size: 14, color: Color(0xFFFF6B35)),
+                        onTap: () => Get.toNamed('/branch-management')
+                            ?.then((_) => _authService.refreshBranches()),
+                      );
+                    }),
+                  ),
+                if (user?.role == 'owner') const SizedBox(height: 16),
+
                 // ── Info Struk (owner/manager only) ──────────────
                 if (user?.role == 'owner' || user?.role == 'manager')
                 Builder(builder: (ctx) {
@@ -1524,6 +1567,104 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               }),
                   );
                   }),
+
+                const SizedBox(height: 16),
+
+                // ── Printer Bluetooth ─────────────────────────────
+                Builder(builder: (ctx) {
+                  final printerDark = Theme.of(ctx).brightness == Brightness.dark;
+                  final btService = Get.find<BluetoothPrinterService>();
+                  return _sectionCard(
+                    icon: Icons.print_rounded,
+                    title: 'Printer Bluetooth',
+                    color: const Color(0xFF7C3AED),
+                    child: Obx(() {
+                      final hasPrinter = btService.savedPrinterAddress.value.isNotEmpty;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Status printer
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: printerDark
+                                    ? const Color(0xFF7C3AED).withValues(alpha: 0.15)
+                                    : const Color(0xFFEDE7F6),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                hasPrinter ? Icons.bluetooth_connected_rounded : Icons.bluetooth_disabled_rounded,
+                                color: hasPrinter ? const Color(0xFF7C3AED) : Colors.grey,
+                                size: 20,
+                              ),
+                            ),
+                            title: Text(
+                              hasPrinter ? btService.savedPrinterName.value : 'Belum ada printer',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: printerDark ? const Color(0xFFE8E9EF) : const Color(0xFF1A1D26),
+                              ),
+                            ),
+                            subtitle: Text(
+                              hasPrinter
+                                  ? btService.savedPrinterAddress.value
+                                  : 'Pilih printer ESC/POS 58mm',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: printerDark ? const Color(0xFF8B8FA8) : Colors.grey.shade600,
+                              ),
+                            ),
+                            trailing: _isScanningPrinter
+                                ? const SizedBox(width: 20, height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF7C3AED)))
+                                : TextButton(
+                                    onPressed: () => _scanAndSelectPrinter(btService),
+                                    child: Text(
+                                      hasPrinter ? 'Ganti' : 'Scan',
+                                      style: const TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                          ),
+
+                          // Tombol Test Print & Hapus — tampil jika ada printer
+                          if (hasPrinter) ...[
+                            Divider(height: 1,
+                                color: printerDark ? const Color(0xFF2A2D3E) : Colors.grey.shade100),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextButton.icon(
+                                    onPressed: _isTestPrinting ? null : () => _doTestPrint(btService),
+                                    icon: _isTestPrinting
+                                        ? const SizedBox(width: 14, height: 14,
+                                            child: CircularProgressIndicator(strokeWidth: 2))
+                                        : const Icon(Icons.print_outlined, size: 16, color: Color(0xFF7C3AED)),
+                                    label: Text(
+                                      _isTestPrinting ? 'Mencetak...' : 'Test Print',
+                                      style: const TextStyle(color: Color(0xFF7C3AED), fontSize: 12),
+                                    ),
+                                  ),
+                                ),
+                                Container(width: 1, height: 32,
+                                    color: printerDark ? const Color(0xFF2A2D3E) : Colors.grey.shade200),
+                                Expanded(
+                                  child: TextButton.icon(
+                                    onPressed: () => _clearPrinter(btService),
+                                    icon: const Icon(Icons.link_off_rounded, size: 16, color: Colors.red),
+                                    label: const Text('Hapus', style: TextStyle(color: Colors.red, fontSize: 12)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      );
+                    }),
+                  );
+                }),
 
                 const SizedBox(height: 16),
 
@@ -2048,6 +2189,128 @@ class _SettingsScreenState extends State<SettingsScreen> {
     };
     return map[role] ?? role;
   }
+
+  // ── Bluetooth Printer methods ──────────────────────────────────────────────
+
+  Future<void> _scanAndSelectPrinter(BluetoothPrinterService btService) async {
+    setState(() => _isScanningPrinter = true);
+    final devices = await btService.getPairedDevices();
+    setState(() => _isScanningPrinter = false);
+
+    if (devices.isEmpty) {
+      Get.snackbar(
+        'Tidak Ada Printer',
+        'Tidak ada perangkat Bluetooth yang di-pair. Pair printer di Pengaturan Bluetooth HP terlebih dahulu.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 4),
+        margin: const EdgeInsets.all(12),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+
+    // Tampil dialog pilih printer
+    final selected = await showDialog<BluetoothInfo>(
+      context: context,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1A1D26) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'Pilih Printer',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: isDark ? const Color(0xFFE8E9EF) : const Color(0xFF1A1D26),
+            ),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: devices.length,
+              separatorBuilder: (_, __) => Divider(height: 1,
+                  color: isDark ? const Color(0xFF2A2D3E) : Colors.grey.shade200),
+              itemBuilder: (ctx, i) {
+                final device = devices[i];
+                return ListTile(
+                  leading: const Icon(Icons.print_rounded, color: Color(0xFF7C3AED)),
+                  title: Text(device.name,
+                      style: TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w600,
+                          color: isDark ? const Color(0xFFE8E9EF) : const Color(0xFF1A1D26))),
+                  subtitle: Text(device.macAdress,
+                      style: TextStyle(fontSize: 11,
+                          color: isDark ? const Color(0xFF8B8FA8) : Colors.grey.shade600)),
+                  onTap: () => Navigator.pop(ctx, device),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (selected == null) return;
+
+    await btService.savePrinter(selected.name, selected.macAdress);
+    Get.snackbar(
+      'Printer Disimpan',
+      '${selected.name} berhasil dipilih sebagai printer.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: const Color(0xFF7C3AED),
+      colorText: Colors.white,
+      margin: const EdgeInsets.all(12),
+      duration: const Duration(seconds: 3),
+      icon: const Icon(Icons.check_circle_rounded, color: Colors.white),
+    );
+  }
+
+  Future<void> _doTestPrint(BluetoothPrinterService btService) async {
+    setState(() => _isTestPrinting = true);
+    final success = await btService.printTest();
+    setState(() => _isTestPrinting = false);
+    Get.snackbar(
+      success ? 'Test Print Berhasil' : 'Test Print Gagal',
+      success ? 'Struk test berhasil dicetak.' : 'Gagal terhubung ke printer. Pastikan printer menyala dan dalam jangkauan.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: success ? const Color(0xFF4CAF50) : Colors.red.shade600,
+      colorText: Colors.white,
+      margin: const EdgeInsets.all(12),
+      duration: const Duration(seconds: 3),
+      icon: Icon(success ? Icons.check_circle_rounded : Icons.error_outline_rounded, color: Colors.white),
+    );
+  }
+
+  void _clearPrinter(BluetoothPrinterService btService) {
+    Get.dialog(AlertDialog(
+      title: const Text('Hapus Printer'),
+      content: Text('Hapus printer ${btService.savedPrinterName.value}?'),
+      actions: [
+        TextButton(onPressed: () => Get.back(), child: const Text('Batal')),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          onPressed: () async {
+            Get.back();
+            await btService.clearPrinter();
+          },
+          child: const Text('Hapus', style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    ));
+  }
+
+  // ── Backup methods ─────────────────────────────────────────────────────────
 
   Future<void> _doBackup() async {
     setState(() {
