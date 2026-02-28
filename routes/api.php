@@ -35,6 +35,7 @@ Route::prefix('auth')->group(function () {
     Route::post('check-registration', [AuthController::class, 'checkRegistrationStatus']);
     Route::post('lookup-company', [AuthController::class, 'lookupCompany']);
     Route::post('login', [AuthController::class, 'login']);
+    Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
 });
 
 // Protected routes

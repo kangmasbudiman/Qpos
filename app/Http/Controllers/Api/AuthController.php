@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
@@ -389,6 +390,91 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Update failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Forgot password — generate password baru & kirim ke email
+     * POST /api/auth/forgot-password
+     * Body: { email, company_code? }
+     */
+    public function forgotPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email'        => 'required|email',
+            'company_code' => 'nullable|string|max:10',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        // Cari user berdasarkan email
+        $query = User::where('email', $request->email);
+
+        // Jika ada company_code, batasi ke merchant tersebut
+        if (!empty($request->company_code)) {
+            $merchant = Merchant::where('company_code', strtoupper($request->company_code))
+                ->where('is_active', true)
+                ->first();
+
+            if (!$merchant) {
+                // Tetap return sukses agar tidak bocorkan info
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Jika email terdaftar, password baru telah dikirim ke email Anda.',
+                ]);
+            }
+
+            $query->where('merchant_id', $merchant->id);
+        }
+
+        $user = $query->first();
+
+        // Selalu return sukses agar tidak bocorkan apakah email exist atau tidak
+        if (!$user || !$user->is_active) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Jika email terdaftar, password baru telah dikirim ke email Anda.',
+            ]);
+        }
+
+        try {
+            // Generate password baru (8 karakter: huruf + angka)
+            $newPassword = Str::random(6) . rand(10, 99);
+
+            // Update password user
+            $user->update(['password' => Hash::make($newPassword)]);
+            // Hapus semua token lama (paksa login ulang)
+            $user->tokens()->delete();
+
+            // Kirim email
+            $storeName = $user->merchant?->name ?? 'PAYZEN';
+            Mail::send([], [], function ($message) use ($user, $newPassword, $storeName) {
+                $message->to($user->email, $user->name)
+                    ->subject("[$storeName] Password Baru Anda")
+                    ->html(view('emails.new_password', [
+                        'name'        => $user->name,
+                        'newPassword' => $newPassword,
+                        'storeName'   => $storeName,
+                        'email'       => $user->email,
+                    ])->render());
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password baru telah dikirim ke email Anda. Silakan login dengan password baru.',
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengirim email. Periksa konfigurasi SMTP: ' . $e->getMessage()
             ], 500);
         }
     }

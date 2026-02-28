@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'presentation/screens/login_screen.dart';
+import 'presentation/screens/forgot_password_screen.dart';
 import 'presentation/screens/register_screen.dart';
 import 'presentation/screens/check_registration_screen.dart';
 import 'presentation/screens/super_admin_login_screen.dart';
@@ -131,6 +132,10 @@ class POSApp extends StatelessWidget {
                 page: () => LoginScreen(),
                 transition: Transition.fadeIn,
                 transitionDuration: const Duration(milliseconds: 350)),
+              GetPage(name: '/forgot-password',
+                page: () => const ForgotPasswordScreen(),
+                transition: Transition.rightToLeft,
+                transitionDuration: const Duration(milliseconds: 300)),
               GetPage(name: '/register',
                 page: () => const RegisterScreen(),
                 transition: Transition.rightToLeft,

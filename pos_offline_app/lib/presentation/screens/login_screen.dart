@@ -471,7 +471,7 @@ class _LoginScreenState extends State<LoginScreen>
           )),
           const SizedBox(height: 10),
 
-          // Remember me
+          // Remember me + Lupa Password
           Obx(() => Row(
             children: [
               SizedBox(
@@ -485,6 +485,18 @@ class _LoginScreenState extends State<LoginScreen>
               const SizedBox(width: 8),
               Text('Ingat saya',
                   style: TextStyle(fontSize: subtitleSize, color: Colors.grey[700])),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => Get.toNamed('/forgot-password'),
+                child: Text(
+                  'Lupa Password?',
+                  style: TextStyle(
+                    fontSize:   subtitleSize,
+                    color:      const Color(0xFFFF6B35),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ],
           )),
           const SizedBox(height: 18),
