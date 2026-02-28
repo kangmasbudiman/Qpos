@@ -530,7 +530,7 @@ class POSController extends GetxController {
   /// Jadwalkan push cart ke customer display (debounce 1 detik)
   void _scheduleDisplayUpdate() {
     _displayDebounceTimer?.cancel();
-    _displayDebounceTimer = Timer(const Duration(seconds: 1), _pushDisplayUpdate);
+    _displayDebounceTimer = Timer(const Duration(milliseconds: 300), _pushDisplayUpdate);
   }
 
   /// Kirim data cart ke VPS untuk ditampilkan di customer display

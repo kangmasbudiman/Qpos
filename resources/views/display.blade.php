@@ -303,7 +303,7 @@
     <script>
         const BRANCH_ID = {{ $branchId }};
         const POLL_URL  = '/api/display/' + BRANCH_ID;
-        const INTERVAL  = 2000; // 2 detik
+        const INTERVAL  = 800; // 0.8 detik
 
         // ── Clock ──────────────────────────────────────────────
         function updateClock() {
