@@ -152,19 +152,35 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       child: _buildEmptyState(allProducts.isEmpty),
                     )
                   else if (isTablet)
-                    // Tablet: 2-column grid
+                    // Tablet: 2-column list (bukan grid agar tidak fixed height)
                     SliverPadding(
                       padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 24),
-                      sliver: SliverGrid(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 2.2,
-                        ),
+                      sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
-                          (ctx, i) => _buildProductCard(filtered[i], currency, isTablet: true),
-                          childCount: filtered.length,
+                          (ctx, i) {
+                            final left  = i * 2;
+                            final right = i * 2 + 1;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: IntrinsicHeight(
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: _buildProductCard(filtered[left], currency, isTablet: true),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: right < filtered.length
+                                          ? _buildProductCard(filtered[right], currency, isTablet: true)
+                                          : const SizedBox.shrink(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                          childCount: (filtered.length / 2).ceil(),
                         ),
                       ),
                     )

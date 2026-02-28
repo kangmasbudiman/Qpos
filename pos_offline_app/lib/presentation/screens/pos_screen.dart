@@ -97,184 +97,120 @@ class _POSScreenState extends State<POSScreen> {
       child: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
             // ── Logo ──
             Container(
-              width: 44, height: 44,
+              width: 40, height: 40,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   begin:  Alignment.topLeft,
                   end:    Alignment.bottomRight,
                   colors: [Color(0xFFFF6B35), Color(0xFFFF8C42)],
                 ),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color:      const Color(0xFFFF6B35).withValues(alpha: 0.4),
-                    blurRadius: 12,
-                    offset:     const Offset(0, 4),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.point_of_sale_rounded, color: Colors.white, size: 22),
+              child: const Icon(Icons.point_of_sale_rounded, color: Colors.white, size: 20),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             const Text(
               'POS',
               style: TextStyle(
                 color:         Colors.white,
-                fontSize:      10,
+                fontSize:      9,
                 fontWeight:    FontWeight.w700,
                 letterSpacing: 2,
               ),
             ),
-            const SizedBox(height: 28),
-
-            // ── Divider tipis ──
+            const SizedBox(height: 12),
             Container(
               height: 1,
               margin: const EdgeInsets.symmetric(horizontal: 16),
               color:  Colors.white.withValues(alpha: 0.08),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 8),
 
-            // ── Nav items ──
-            ...navItems.map((item) => _buildNavItem(item)),
-
-            const Spacer(),
-
-            // ── Branch switcher (owner & manager) ──
-            if (user != null && (user.isOwner || user.isManager)) ...[
-              Container(
-                height: 1,
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                color:  Colors.white.withValues(alpha: 0.08),
+            // ── Nav items (scrollable jika perlu) ──
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                child: Column(
+                  children: navItems.map((item) => _buildNavItem(item)).toList(),
+                ),
               ),
-              const SizedBox(height: 12),
+            ),
+
+            // ── Bottom items (fixed, tidak scroll) ──
+            Container(
+              height: 1,
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              color:  Colors.white.withValues(alpha: 0.08),
+            ),
+            const SizedBox(height: 8),
+
+            // Branch switcher
+            if (user != null && (user.isOwner || user.isManager))
               GestureDetector(
                 onTap: () => _showBranchSwitcher(authService),
                 child: Obx(() {
                   final branch = authService.selectedBranch;
-                  return Column(
-                    children: [
-                      Container(
-                        width: 44, height: 44,
-                        decoration: BoxDecoration(
-                          color:        Colors.white.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border:       Border.all(color: Colors.white.withValues(alpha: 0.15)),
-                        ),
-                        child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 20),
-                      ),
-                      const SizedBox(height: 4),
-                      SizedBox(
-                        width: 64,
-                        child: Text(
-                          branch?.name ?? 'Pilih',
-                          style: TextStyle(
-                            color:    Colors.white.withValues(alpha: 0.6),
-                            fontSize: 8,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                        ),
-                      ),
-                    ],
+                  return _sidebarBottomItem(
+                    icon:  Icons.storefront_rounded,
+                    label: branch?.name ?? 'Pilih',
                   );
                 }),
               ),
-              const SizedBox(height: 12),
-            ],
 
-            // ── Divider tipis ──
-            Container(
-              height: 1,
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              color:  Colors.white.withValues(alpha: 0.08),
-            ),
-            const SizedBox(height: 16),
-
-            // ── Customer Display QR ──
+            // Customer Display
             Obx(() {
-              final branch = authService.selectedBranch;
-              final branchId = branch?.id ?? authService.currentUser?.branchId;
+              final branchId = authService.selectedBranch?.id
+                  ?? authService.currentUser?.branchId;
               if (branchId == null) return const SizedBox.shrink();
               return GestureDetector(
                 onTap: () => _showDisplayQR(branchId),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 40, height: 40,
-                      decoration: BoxDecoration(
-                        color:        Colors.white.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(12),
-                        border:       Border.all(color: Colors.white.withValues(alpha: 0.12)),
-                      ),
-                      child: const Icon(Icons.monitor_rounded, color: Colors.white, size: 20),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Display',
-                      style: TextStyle(
-                        color:    Colors.white.withValues(alpha: 0.5),
-                        fontSize: 8,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
+                child: _sidebarBottomItem(
+                  icon:  Icons.monitor_rounded,
+                  label: 'Display',
                 ),
               );
             }),
 
-            // ── Connectivity dot ──
+            // Connectivity
             const ConnectivityDot(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
 
-            // ── Avatar ──
-            Column(
-              children: [
-                Container(
-                  width: 40, height: 40,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin:  Alignment.topLeft,
-                      end:    Alignment.bottomRight,
-                      colors: [Color(0xFFFF6B35), Color(0xFFFF8C42)],
-                    ),
-                    shape:  BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color:      const Color(0xFFFF6B35).withValues(alpha: 0.35),
-                        blurRadius: 10,
-                        offset:     const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      (user?.name ?? 'U')[0].toUpperCase(),
-                      style: const TextStyle(
-                        color:      Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize:   16,
-                      ),
-                    ),
+            // Avatar
+            Container(
+              width: 36, height: 36,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFFF6B35), Color(0xFFFF8C42)],
+                  begin: Alignment.topLeft,
+                  end:   Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  (user?.name ?? 'U')[0].toUpperCase(),
+                  style: const TextStyle(
+                    color:      Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize:   14,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  user != null ? user.name.split(' ').first : 'User',
-                  style: TextStyle(
-                    color:    Colors.white.withValues(alpha: 0.5),
-                    fontSize: 9,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 4),
+            Text(
+              user != null ? user.name.split(' ').first : 'User',
+              style: TextStyle(
+                color:    Colors.white.withValues(alpha: 0.5),
+                fontSize: 8,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 12),
           ],
         ),
       ),
@@ -337,6 +273,33 @@ class _POSScreenState extends State<POSScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _sidebarBottomItem({required IconData icon, required String label}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(
+              color:        Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border:       Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            ),
+            child: Icon(icon, color: Colors.white, size: 18),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            label,
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 8),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ],
       ),
     );
   }
@@ -1663,77 +1626,77 @@ void _showHoldTransactionDialog(POSController controller) {
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         contentPadding: const EdgeInsets.all(24),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Customer Display',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A1D26)),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Scan QR atau buka URL di browser device customer',
-              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+        backgroundColor: Colors.white,
+        content: SizedBox(
+          width: 300,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Customer Display',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A1D26)),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Scan QR atau buka URL di browser device customer',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFEEEEEE)),
                   ),
-                ],
-              ),
-              child: QrImageView(
-                data:           url,
-                version:        QrVersions.auto,
-                size:           200,
-                backgroundColor: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 16),
-            // URL box + copy button
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4F5F7),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE0E0E0)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      url,
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF1A1D26)),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                  child: QrImageView(
+                    data:            url,
+                    version:         QrVersions.auto,
+                    size:            200,
+                    backgroundColor: Colors.white,
                   ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: url));
-                      Get.snackbar(
-                        'Disalin',
-                        'URL berhasil disalin',
-                        snackPosition: SnackPosition.BOTTOM,
-                        duration: const Duration(seconds: 2),
-                        backgroundColor: const Color(0xFF4CAF50),
-                        colorText: Colors.white,
-                      );
-                    },
-                    child: const Icon(Icons.copy_rounded, size: 16, color: Color(0xFFFF6B35)),
+                ),
+                const SizedBox(height: 16),
+                // URL box + copy button
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4F5F7),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE0E0E0)),
                   ),
-                ],
-              ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          url,
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF1A1D26)),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: url));
+                          Get.snackbar(
+                            'Disalin',
+                            'URL berhasil disalin',
+                            snackPosition: SnackPosition.BOTTOM,
+                            duration: const Duration(seconds: 2),
+                            backgroundColor: const Color(0xFF4CAF50),
+                            colorText: Colors.white,
+                          );
+                        },
+                        child: const Icon(Icons.copy_rounded, size: 16, color: Color(0xFFFF6B35)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
         actions: [
           TextButton(
@@ -1742,6 +1705,7 @@ void _showHoldTransactionDialog(POSController controller) {
           ),
         ],
       ),
+      barrierColor: Colors.black54,
     );
   }
 
