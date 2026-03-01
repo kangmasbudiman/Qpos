@@ -415,11 +415,13 @@ class _POSScreenState extends State<POSScreen> {
 
   // ── PRODUCT AREA ──────────────────────────────────────────────────────────
   Widget _buildProductArea(POSController controller, Size size, bool isTablet) {
+    final sub = Get.find<AuthService>().subscription;
+    final hasBarcode = sub?.hasFeature('barcode_scanner') ?? true;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildProductHeader(controller, isTablet),
-        _buildBarcodeInputField(controller),
+        _buildProductHeader(controller, isTablet, hasBarcode: hasBarcode),
+        if (hasBarcode) _buildBarcodeInputField(controller),
         _buildCategoryChips(controller),
         Expanded(
           child: Obx(() {
@@ -432,7 +434,7 @@ class _POSScreenState extends State<POSScreen> {
     );
   }
 
-  Widget _buildProductHeader(POSController controller, bool isTablet) {
+  Widget _buildProductHeader(POSController controller, bool isTablet, {bool hasBarcode = true}) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       child: Row(
@@ -474,8 +476,8 @@ class _POSScreenState extends State<POSScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          // ── Tombol Kamera Scanner ──
-          GestureDetector(
+          // ── Tombol Kamera Scanner (Business only) ──
+          if (hasBarcode) GestureDetector(
             onTap: () => _showCameraScanner(context, Get.find<POSController>()),
             child: Container(
               height: 44, width: 44,

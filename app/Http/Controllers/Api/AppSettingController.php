@@ -18,11 +18,15 @@ class AppSettingController extends Controller
         return response()->json([
             'success' => true,
             'data'    => [
-                'price_monthly'    => AppSetting::priceMonthly(),
-                'price_yearly'     => AppSetting::priceYearly(),
-                'trial_days'       => AppSetting::trialDays(),
-                'support_email'    => AppSetting::get('support_email', 'support@payzen.id'),
-                'support_whatsapp' => AppSetting::get('support_whatsapp', ''),
+                'price_monthly'          => AppSetting::priceMonthly(),
+                'price_yearly'           => AppSetting::priceYearly(),
+                'price_starter_monthly'  => AppSetting::priceStarterMonthly(),
+                'price_starter_yearly'   => AppSetting::priceStarterYearly(),
+                'price_business_monthly' => AppSetting::priceBusinessMonthly(),
+                'price_business_yearly'  => AppSetting::priceBusinessYearly(),
+                'trial_days'             => AppSetting::trialDays(),
+                'support_email'          => AppSetting::get('support_email', 'support@payzen.id'),
+                'support_whatsapp'       => AppSetting::get('support_whatsapp', ''),
             ],
         ]);
     }
@@ -49,18 +53,28 @@ class AppSettingController extends Controller
      */
     public function update(Request $request): \Illuminate\Http\JsonResponse
     {
+        $allowedKeys = [
+            'price_monthly', 'price_yearly',
+            'price_starter_monthly', 'price_starter_yearly',
+            'price_business_monthly', 'price_business_yearly',
+            'trial_days', 'support_email', 'support_whatsapp',
+        ];
+
         $request->validate([
-            'settings'                  => 'required|array',
-            'settings.price_monthly'    => 'sometimes|numeric|min:0',
-            'settings.price_yearly'     => 'sometimes|numeric|min:0',
-            'settings.trial_days'       => 'sometimes|integer|min:1|max:365',
-            'settings.support_email'    => 'sometimes|email',
-            'settings.support_whatsapp' => 'sometimes|string|max:20',
+            'settings'                          => 'required|array',
+            'settings.price_monthly'            => 'sometimes|numeric|min:0',
+            'settings.price_yearly'             => 'sometimes|numeric|min:0',
+            'settings.price_starter_monthly'    => 'sometimes|numeric|min:0',
+            'settings.price_starter_yearly'     => 'sometimes|numeric|min:0',
+            'settings.price_business_monthly'   => 'sometimes|numeric|min:0',
+            'settings.price_business_yearly'    => 'sometimes|numeric|min:0',
+            'settings.trial_days'               => 'sometimes|integer|min:1|max:365',
+            'settings.support_email'            => 'sometimes|email',
+            'settings.support_whatsapp'         => 'sometimes|string|max:20',
         ]);
 
         foreach ($request->settings as $key => $value) {
-            // Hanya izinkan key yang dikenal
-            if (in_array($key, ['price_monthly', 'price_yearly', 'trial_days', 'support_email', 'support_whatsapp'])) {
+            if (in_array($key, $allowedKeys)) {
                 AppSetting::set($key, $value);
             }
         }
@@ -71,11 +85,15 @@ class AppSettingController extends Controller
             'success' => true,
             'message' => 'Pengaturan berhasil disimpan',
             'data'    => [
-                'price_monthly'    => AppSetting::priceMonthly(),
-                'price_yearly'     => AppSetting::priceYearly(),
-                'trial_days'       => AppSetting::trialDays(),
-                'support_email'    => AppSetting::get('support_email'),
-                'support_whatsapp' => AppSetting::get('support_whatsapp'),
+                'price_monthly'          => AppSetting::priceMonthly(),
+                'price_yearly'           => AppSetting::priceYearly(),
+                'price_starter_monthly'  => AppSetting::priceStarterMonthly(),
+                'price_starter_yearly'   => AppSetting::priceStarterYearly(),
+                'price_business_monthly' => AppSetting::priceBusinessMonthly(),
+                'price_business_yearly'  => AppSetting::priceBusinessYearly(),
+                'trial_days'             => AppSetting::trialDays(),
+                'support_email'          => AppSetting::get('support_email'),
+                'support_whatsapp'       => AppSetting::get('support_whatsapp'),
             ],
         ]);
     }

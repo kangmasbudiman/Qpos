@@ -1578,8 +1578,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 const SizedBox(height: 16),
 
-                // ── Printer Bluetooth ─────────────────────────────
+                // ── Printer Bluetooth (Business tier only) ────────
                 Builder(builder: (ctx) {
+                  final sub = Get.find<AuthService>().subscription;
+                  if (!(sub?.hasFeature('bluetooth_print') ?? true)) return const SizedBox.shrink();
                   final printerDark = Theme.of(ctx).brightness == Brightness.dark;
                   final btService = Get.find<BluetoothPrinterService>();
                   return _sectionCard(
@@ -1844,8 +1846,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 16),
                 ],
 
-                // ── Shift Kasir ──────────────────────────────────
-                if (_shiftSvc != null) ...[
+                // ── Shift Kasir (Business tier only) ─────────────
+                if (_shiftSvc != null && (Get.find<AuthService>().subscription?.hasFeature('shift') ?? true)) ...[
                   _sectionCard(
                     icon: Icons.access_time_rounded,
                     title: 'Shift Kasir',

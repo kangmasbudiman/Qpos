@@ -26,6 +26,7 @@ class Merchant extends Model
         'trial_ends_at',
         'subscription_ends_at',
         'plan_type',
+        'subscription_tier',
         'last_payment_at',
         'last_payment_amount',
     ];
@@ -87,17 +88,78 @@ class Merchant extends Model
         }
     }
 
+    // ── Tier helpers ──────────────────────────────────────────────────────
+
+    /**
+     * Tier efektif: trial selalu dapat Business, paid sesuai subscription_tier.
+     * Fallback ke 'starter' jika belum disetel.
+     */
+    public function effectiveTier(): string
+    {
+        if ($this->isOnTrial()) return 'business';
+        return $this->subscription_tier ?? 'starter';
+    }
+
+    /** Limit kuantitatif per tier (cabang, staff, produk, laporan) */
+    public function getLimit(string $feature): int
+    {
+        $limits = [
+            'starter'  => [
+                'branches'    => 1,
+                'staff'       => 2,
+                'products'    => 100,
+                'report_days' => 30,
+            ],
+            'business' => [
+                'branches'    => 5,
+                'staff'       => 10,
+                'products'    => PHP_INT_MAX,
+                'report_days' => 365,
+            ],
+        ];
+        return $limits[$this->effectiveTier()][$feature] ?? PHP_INT_MAX;
+    }
+
+    /** Fitur boolean — Business-only features */
+    public function canUseFeature(string $feature): bool
+    {
+        $businessOnly = [
+            'bluetooth_print', 'analytics', 'barcode_scanner',
+            'loyalty', 'shift', 'item_discount', 'multi_payment',
+        ];
+        if (in_array($feature, $businessOnly)) {
+            return $this->effectiveTier() === 'business';
+        }
+        return true;
+    }
+
     /** Data subscription untuk dikirim ke Flutter */
     public function subscriptionInfo(): array
     {
         $this->syncSubscriptionStatus();
         return [
-            'status'        => $this->subscription_status,
-            'days_remaining'=> $this->daysRemaining(),
-            'trial_ends_at' => $this->trial_ends_at?->toDateString(),
-            'sub_ends_at'   => $this->subscription_ends_at?->toDateString(),
-            'plan_type'     => $this->plan_type,
-            'can_access'    => $this->canAccess(),
+            'status'         => $this->subscription_status,
+            'days_remaining' => $this->daysRemaining(),
+            'trial_ends_at'  => $this->trial_ends_at?->toDateString(),
+            'sub_ends_at'    => $this->subscription_ends_at?->toDateString(),
+            'plan_type'      => $this->plan_type,
+            'can_access'     => $this->canAccess(),
+            'tier'           => $this->effectiveTier(),
+            'limits'         => [
+                'branches'    => $this->getLimit('branches'),
+                'staff'       => $this->getLimit('staff'),
+                'products'    => $this->getLimit('products') === PHP_INT_MAX ? -1 : $this->getLimit('products'),
+                'report_days' => $this->getLimit('report_days'),
+            ],
+            'features'       => [
+                'bluetooth_print' => $this->canUseFeature('bluetooth_print'),
+                'analytics'       => $this->canUseFeature('analytics'),
+                'barcode_scanner' => $this->canUseFeature('barcode_scanner'),
+                'loyalty'         => $this->canUseFeature('loyalty'),
+                'shift'           => $this->canUseFeature('shift'),
+                'item_discount'   => $this->canUseFeature('item_discount'),
+                'multi_payment'   => $this->canUseFeature('multi_payment'),
+            ],
         ];
     }
 

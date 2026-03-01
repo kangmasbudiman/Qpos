@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../controllers/pos_controller.dart';
 import '../widgets/connectivity_indicator.dart';
+import '../../services/auth/auth_service.dart';
 import '../../services/loyalty/loyalty_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -448,6 +449,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String _multiPaySelectedMethod = 'cash';
 
   Widget _buildPaymentMethodSection() {
+    final sub = Get.find<AuthService>().subscription;
+    final hasMultiPayment = sub?.hasFeature('multi_payment') ?? true;
     final methods = [
       {'id': 'cash',   'label': 'Tunai',  'icon': Icons.payments_outlined},
       {'id': 'debit',  'label': 'Debit',  'icon': Icons.credit_card_outlined},
@@ -536,7 +539,31 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Jumlah input + tombol tambah
+              // Jumlah input + tombol tambah (Business only — multi-payment)
+              if (!hasMultiPayment) ...[
+                // Starter: pesan upgrade
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3E0),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFFB74D).withValues(alpha: 0.5)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.lock_rounded, size: 14, color: Color(0xFFE65100)),
+                      SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Multi-payment hanya tersedia di tier Business.',
+                          style: TextStyle(fontSize: 11, color: Color(0xFFE65100)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
               Row(
                 children: [
                   Expanded(
@@ -721,6 +748,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ],
                 );
               }),
+              ], // end else hasMultiPayment
             ],
           );
         },
@@ -1358,6 +1386,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   // ── LOYALTY POINTS ────────────────────────────────────────────────────────
   Widget _buildLoyaltySection() {
+    // Hanya Business tier yang punya fitur loyalty
+    final sub = Get.find<AuthService>().subscription;
+    if (!(sub?.hasFeature('loyalty') ?? true)) return const SizedBox.shrink();
     if (_loyaltySvc == null) return const SizedBox.shrink();
 
     // Jika belum pilih customer → tampilkan hint
@@ -1722,6 +1753,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   // ── DIALOG DISKON (Enhanced) ───────────────────────────────────────────────
   void _showDiscountDialog(CartItem item) {
+    // Diskon per item hanya untuk Business tier
+    final sub = Get.find<AuthService>().subscription;
+    if (!(sub?.hasFeature('item_discount') ?? true)) {
+      Get.snackbar(
+        'Fitur Terkunci',
+        'Diskon per item hanya tersedia di tier Business.',
+        backgroundColor: const Color(0xFF1A1D2E),
+        colorText: Colors.white,
+        icon: const Icon(Icons.lock_rounded, color: Colors.white),
+        duration: const Duration(seconds: 3),
+      );
+      return;
+    }
     bool isPercent = item.discountIsPercent;
     final discountCtrl = TextEditingController(
         text: item.discount > 0 ? item.discount.toStringAsFixed(0) : '');

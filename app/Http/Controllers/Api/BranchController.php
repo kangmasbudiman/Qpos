@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Models\Merchant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -51,6 +52,22 @@ class BranchController extends Controller
                 'message' => 'Validation error',
                 'errors' => $validator->errors()
             ], 422);
+        }
+
+        // Cek limit cabang berdasarkan tier
+        $merchant = Merchant::find($request->user()->merchant_id);
+        if ($merchant) {
+            $limit   = $merchant->getLimit('branches');
+            $current = $merchant->branches()->count();
+            if ($current >= $limit) {
+                return response()->json([
+                    'success' => false,
+                    'error'   => 'limit_exceeded',
+                    'message' => "Batas cabang tier {$merchant->effectiveTier()} adalah $limit cabang. Upgrade ke Business untuk hingga 5 cabang.",
+                    'limit'   => $limit,
+                    'current' => $current,
+                ], 422);
+            }
         }
 
         try {

@@ -19,6 +19,7 @@ class MerchantSubInfo {
   final String? trialEndsAt;
   final String? subEndsAt;
   final String? planType;
+  final String? subscriptionTier;  // 'starter' | 'business'
   final bool   canAccess;
   final String? approvedAt;
 
@@ -33,6 +34,7 @@ class MerchantSubInfo {
     this.trialEndsAt,
     this.subEndsAt,
     this.planType,
+    this.subscriptionTier,
     required this.canAccess,
     this.approvedAt,
   });
@@ -40,18 +42,19 @@ class MerchantSubInfo {
   factory MerchantSubInfo.fromJson(Map<String, dynamic> json) {
     final sub = json['subscription'] as Map<String, dynamic>? ?? {};
     return MerchantSubInfo(
-      id:            (json['id'] as num).toInt(),
-      name:          json['name'] as String? ?? '',
-      companyCode:   json['company_code'] as String? ?? '',
-      email:         json['email'] as String? ?? '',
-      phone:         json['phone'] as String?,
-      subStatus:     sub['status'] as String? ?? 'expired',
-      daysRemaining: (sub['days_remaining'] as num?)?.toInt() ?? 0,
-      trialEndsAt:   sub['trial_ends_at'] as String?,
-      subEndsAt:     sub['sub_ends_at'] as String?,
-      planType:      sub['plan_type'] as String?,
-      canAccess:     sub['can_access'] as bool? ?? false,
-      approvedAt:    json['approved_at'] as String?,
+      id:                (json['id'] as num).toInt(),
+      name:              json['name'] as String? ?? '',
+      companyCode:       json['company_code'] as String? ?? '',
+      email:             json['email'] as String? ?? '',
+      phone:             json['phone'] as String?,
+      subStatus:         sub['status'] as String? ?? 'expired',
+      daysRemaining:     (sub['days_remaining'] as num?)?.toInt() ?? 0,
+      trialEndsAt:       sub['trial_ends_at'] as String?,
+      subEndsAt:         sub['sub_ends_at'] as String?,
+      planType:          sub['plan_type'] as String?,
+      subscriptionTier:  sub['tier'] as String?,
+      canAccess:         sub['can_access'] as bool? ?? false,
+      approvedAt:        json['approved_at'] as String?,
     );
   }
 }
@@ -257,11 +260,11 @@ class RegistrationService extends GetxService {
   }
 
   /// POST /subscriptions/{id}/activate — aktifkan langganan berbayar
-  Future<void> activateSubscription(int merchantId, String planType, double amount) async {
+  Future<void> activateSubscription(int merchantId, String planType, double amount, {String tier = 'starter'}) async {
     final response = await http.post(
       Uri.parse('${AppConstants.baseUrl}/subscriptions/$merchantId/activate'),
       headers: _headers,
-      body: jsonEncode({'plan_type': planType, 'amount': amount}),
+      body: jsonEncode({'plan_type': planType, 'amount': amount, 'tier': tier}),
     ).timeout(const Duration(seconds: 15));
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -270,11 +273,11 @@ class RegistrationService extends GetxService {
   }
 
   /// POST /subscriptions/{id}/extend — perpanjang langganan
-  Future<void> extendSubscription(int merchantId, String planType, double amount) async {
+  Future<void> extendSubscription(int merchantId, String planType, double amount, {String tier = 'starter'}) async {
     final response = await http.post(
       Uri.parse('${AppConstants.baseUrl}/subscriptions/$merchantId/extend'),
       headers: _headers,
-      body: jsonEncode({'plan_type': planType, 'amount': amount}),
+      body: jsonEncode({'plan_type': planType, 'amount': amount, 'tier': tier}),
     ).timeout(const Duration(seconds: 15));
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Merchant;
 use App\Models\Product;
 use App\Models\Stock;
 use Illuminate\Http\Request;
@@ -70,6 +71,22 @@ class ProductController extends Controller
                 'message' => 'Validation error',
                 'errors' => $validator->errors()
             ], 422);
+        }
+
+        // Cek limit produk berdasarkan tier
+        $merchant = Merchant::find($request->user()->merchant_id);
+        if ($merchant) {
+            $limit   = $merchant->getLimit('products');
+            $current = $merchant->products()->count();
+            if ($limit !== PHP_INT_MAX && $current >= $limit) {
+                return response()->json([
+                    'success' => false,
+                    'error'   => 'limit_exceeded',
+                    'message' => "Batas produk tier {$merchant->effectiveTier()} adalah $limit produk. Upgrade ke Business untuk produk unlimited.",
+                    'limit'   => $limit,
+                    'current' => $current,
+                ], 422);
+            }
         }
 
         try {

@@ -74,6 +74,10 @@ class _DashboardScreenNewState extends State<DashboardScreenNew> {
 
   Future<void> _checkShift() async {
     try {
+      // Fitur shift hanya untuk Business tier
+      final sub = Get.find<AuthService>().subscription;
+      if (!(sub?.hasFeature('shift') ?? true)) return;
+
       final shiftSvc = Get.find<ShiftService>();
       await shiftSvc.refresh();
       if (shiftSvc.currentShift.value == null && mounted) {
@@ -1835,9 +1839,13 @@ class _DashboardScreenNewState extends State<DashboardScreenNew> {
 
   final _currency = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
-  // ── Top Products Widget ───────────────────────────────────────────────────
+  // ── Top Products Widget (Business tier only) ─────────────────────────────
 
   Widget _buildTopProducts(bool isTablet) {
+    // Analytics hanya Business tier
+    final sub = Get.find<AuthService>().subscription;
+    if (!(sub?.hasFeature('analytics') ?? true)) return const SizedBox.shrink();
+
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _getTopProducts(),
       builder: (context, snapshot) {

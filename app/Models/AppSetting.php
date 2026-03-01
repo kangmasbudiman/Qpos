@@ -60,6 +60,30 @@ class AppSetting extends Model
         return (int) static::get('trial_days', 7);
     }
 
+    /** Harga Starter bulanan (integer Rupiah) */
+    public static function priceStarterMonthly(): int
+    {
+        return (int) static::get('price_starter_monthly', 99000);
+    }
+
+    /** Harga Starter tahunan (integer Rupiah) */
+    public static function priceStarterYearly(): int
+    {
+        return (int) static::get('price_starter_yearly', 990000);
+    }
+
+    /** Harga Business bulanan (integer Rupiah) */
+    public static function priceBusinessMonthly(): int
+    {
+        return (int) static::get('price_business_monthly', 199000);
+    }
+
+    /** Harga Business tahunan (integer Rupiah) */
+    public static function priceBusinessYearly(): int
+    {
+        return (int) static::get('price_business_yearly', 1990000);
+    }
+
     /** Hapus semua cache settings */
     public static function clearCache(): void
     {

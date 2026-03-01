@@ -158,5 +158,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('{merchantId}/extend', [SubscriptionController::class, 'extend']);
         Route::post('{merchantId}/suspend', [SubscriptionController::class, 'suspend']);
         Route::post('{merchantId}/reset-trial', [SubscriptionController::class, 'resetTrial']);
+        Route::post('{merchantId}/change-tier', [SubscriptionController::class, 'changeTier']);
     });
 });

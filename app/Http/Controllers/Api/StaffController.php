@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Merchant;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -74,6 +75,22 @@ class StaffController extends Controller
                 'success' => false,
                 'message' => 'Manager tidak dapat membuat akun manager',
             ], 403);
+        }
+
+        // Cek limit staff berdasarkan tier
+        $merchant = Merchant::find($actor->merchant_id);
+        if ($merchant) {
+            $limit   = $merchant->getLimit('staff');
+            $current = $merchant->users()->whereIn('role', ['cashier', 'manager'])->count();
+            if ($current >= $limit) {
+                return response()->json([
+                    'success' => false,
+                    'error'   => 'limit_exceeded',
+                    'message' => "Batas staff tier {$merchant->effectiveTier()} adalah $limit user. Upgrade ke Business untuk hingga 10 staff.",
+                    'limit'   => $limit,
+                    'current' => $current,
+                ], 422);
+            }
         }
 
         try {

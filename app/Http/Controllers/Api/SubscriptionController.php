@@ -26,11 +26,15 @@ class SubscriptionController extends Controller
             'success'      => true,
             'subscription' => $merchant->subscriptionInfo(),
             'pricing'      => [
-                'price_monthly'    => AppSetting::priceMonthly(),
-                'price_yearly'     => AppSetting::priceYearly(),
-                'trial_days'       => AppSetting::trialDays(),
-                'support_email'    => AppSetting::get('support_email', 'support@payzen.id'),
-                'support_whatsapp' => AppSetting::get('support_whatsapp', ''),
+                'price_monthly'          => AppSetting::priceMonthly(),
+                'price_yearly'           => AppSetting::priceYearly(),
+                'price_starter_monthly'  => AppSetting::priceStarterMonthly(),
+                'price_starter_yearly'   => AppSetting::priceStarterYearly(),
+                'price_business_monthly' => AppSetting::priceBusinessMonthly(),
+                'price_business_yearly'  => AppSetting::priceBusinessYearly(),
+                'trial_days'             => AppSetting::trialDays(),
+                'support_email'          => AppSetting::get('support_email', 'support@payzen.id'),
+                'support_whatsapp'       => AppSetting::get('support_whatsapp', ''),
             ],
         ]);
     }
@@ -67,22 +71,33 @@ class SubscriptionController extends Controller
         $request->validate([
             'plan_type' => 'required|in:monthly,yearly',
             'amount'    => 'sometimes|numeric|min:0',
+            'tier'      => 'sometimes|in:starter,business',
         ]);
 
         $merchant = Merchant::findOrFail($merchantId);
+        $tier     = $request->input('tier', $merchant->subscription_tier ?? 'starter');
 
         $months = $request->plan_type === 'yearly' ? 12 : 1;
         $endsAt = now()->addMonths($months);
 
-        // Gunakan amount dari request, atau fallback ke setting
-        $amount = $request->filled('amount')
-            ? $request->amount
-            : ($request->plan_type === 'yearly' ? AppSetting::priceYearly() : AppSetting::priceMonthly());
+        // Gunakan amount dari request, atau fallback ke harga tier dari setting
+        if ($request->filled('amount')) {
+            $amount = $request->amount;
+        } elseif ($tier === 'business') {
+            $amount = $request->plan_type === 'yearly'
+                ? AppSetting::priceBusinessYearly()
+                : AppSetting::priceBusinessMonthly();
+        } else {
+            $amount = $request->plan_type === 'yearly'
+                ? AppSetting::priceStarterYearly()
+                : AppSetting::priceStarterMonthly();
+        }
 
         $merchant->update([
             'subscription_status'  => 'active',
             'subscription_ends_at' => $endsAt,
             'plan_type'            => $request->plan_type,
+            'subscription_tier'    => $tier,
             'last_payment_at'      => now(),
             'last_payment_amount'  => $amount,
         ]);
@@ -96,21 +111,31 @@ class SubscriptionController extends Controller
 
     /**
      * Perpanjang langganan yang sudah ada.
-     * Body: { plan_type: 'monthly'|'yearly', amount?: 99000 }
+     * Body: { plan_type: 'monthly'|'yearly', amount?: 99000, tier?: 'starter'|'business' }
      */
     public function extend(Request $request, $merchantId)
     {
         $request->validate([
             'plan_type' => 'required|in:monthly,yearly',
             'amount'    => 'sometimes|numeric|min:0',
+            'tier'      => 'sometimes|in:starter,business',
         ]);
 
         $merchant = Merchant::findOrFail($merchantId);
         $months   = $request->plan_type === 'yearly' ? 12 : 1;
+        $tier     = $request->input('tier', $merchant->subscription_tier ?? 'starter');
 
-        $amount = $request->filled('amount')
-            ? $request->amount
-            : ($request->plan_type === 'yearly' ? AppSetting::priceYearly() : AppSetting::priceMonthly());
+        if ($request->filled('amount')) {
+            $amount = $request->amount;
+        } elseif ($tier === 'business') {
+            $amount = $request->plan_type === 'yearly'
+                ? AppSetting::priceBusinessYearly()
+                : AppSetting::priceBusinessMonthly();
+        } else {
+            $amount = $request->plan_type === 'yearly'
+                ? AppSetting::priceStarterYearly()
+                : AppSetting::priceStarterMonthly();
+        }
 
         // Jika masih aktif, perpanjang dari tanggal berakhir. Jika expired, dari sekarang.
         $base   = ($merchant->subscription_ends_at && $merchant->subscription_ends_at->isFuture())
@@ -122,6 +147,7 @@ class SubscriptionController extends Controller
             'subscription_status'  => 'active',
             'subscription_ends_at' => $endsAt,
             'plan_type'            => $request->plan_type,
+            'subscription_tier'    => $tier,
             'last_payment_at'      => now(),
             'last_payment_amount'  => $amount,
         ]);
@@ -129,6 +155,24 @@ class SubscriptionController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Langganan diperpanjang hingga {$endsAt->toDateString()}",
+            'subscription' => $merchant->subscriptionInfo(),
+        ]);
+    }
+
+    /**
+     * Ganti tier subscription merchant (tanpa mengubah status/tanggal).
+     * Body: { tier: 'starter'|'business' }
+     */
+    public function changeTier(Request $request, $merchantId)
+    {
+        $request->validate(['tier' => 'required|in:starter,business']);
+
+        $merchant = Merchant::findOrFail($merchantId);
+        $merchant->update(['subscription_tier' => $request->tier]);
+
+        return response()->json([
+            'success'      => true,
+            'message'      => "Tier berhasil diganti ke {$request->tier}",
             'subscription' => $merchant->subscriptionInfo(),
         ]);
     }
