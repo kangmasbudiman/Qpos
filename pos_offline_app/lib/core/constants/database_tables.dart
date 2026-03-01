@@ -25,6 +25,13 @@ class DatabaseTables {
   // Stock Opname Tables
   static const String stockOpnames     = 'stock_opnames';
   static const String stockOpnameItems = 'stock_opname_items';
+
+  // Loyalty / Member Tables (v8)
+  static const String loyaltyMembers       = 'loyalty_members';
+  static const String loyaltyTransactions  = 'loyalty_transactions';
+
+  // Cashier Shift Table (v8)
+  static const String cashierShifts = 'cashier_shifts';
 }
 
 class DatabaseColumns {

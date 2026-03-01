@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../controllers/pos_controller.dart';
 import '../widgets/connectivity_indicator.dart';
+import '../../services/loyalty/loyalty_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({Key? key}) : super(key: key);
@@ -19,19 +20,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   late final TextEditingController _cashController;
   final _currency = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
+  // Loyalty state
+  LoyaltyService? _loyaltySvc;
+  Map<String, dynamic>? _memberInfo;
+  final _redeemPointsCtrl = TextEditingController();
+  final RxInt _redeemPoints = 0.obs;
+  final RxDouble _redeemDiscount = 0.0.obs;
+
   @override
   void initState() {
     super.initState();
     _controller = Get.find<POSController>();
     _notesController = TextEditingController();
     _cashController = TextEditingController();
+    try { _loyaltySvc = Get.find<LoyaltyService>(); } catch (_) {}
   }
 
   @override
   void dispose() {
     _notesController.dispose();
     _cashController.dispose();
+    _redeemPointsCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadMemberInfo() async {
+    final customer = _controller.selectedCustomer;
+    if (customer == null || _loyaltySvc == null) {
+      setState(() { _memberInfo = null; _redeemPoints.value = 0; _redeemDiscount.value = 0; });
+      return;
+    }
+    final info = await _loyaltySvc!.getMemberInfo(customer.id!);
+    if (mounted) setState(() { _memberInfo = info; _redeemPoints.value = 0; _redeemDiscount.value = 0; _redeemPointsCtrl.clear(); });
   }
 
   @override
@@ -66,6 +86,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               const SizedBox(height: 12),
               _buildCustomerSection(),
               const SizedBox(height: 12),
+              _buildLoyaltySection(),
+              const SizedBox(height: 12),
               _buildNotesSection(),
               const SizedBox(height: 12),
               _buildOrderSummary(),
@@ -95,6 +117,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     _buildCartItemsSection(),
                     const SizedBox(height: 16),
                     _buildCustomerSection(),
+                    const SizedBox(height: 16),
+                    _buildLoyaltySection(),
                     const SizedBox(height: 16),
                     _buildNotesSection(),
                     const SizedBox(height: 24),
@@ -727,7 +751,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               const Spacer(),
               Obx(() => _controller.selectedCustomer != null
                   ? GestureDetector(
-                      onTap: _controller.clearCustomer,
+                      onTap: () { _controller.clearCustomer(); _loadMemberInfo(); },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
@@ -1128,6 +1152,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         onTap: () {
                           _controller.setCustomer(c);
                           Get.back();
+                          _loadMemberInfo();
                         },
                       );
                     },
@@ -1331,6 +1356,195 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+  // ── LOYALTY POINTS ────────────────────────────────────────────────────────
+  Widget _buildLoyaltySection() {
+    if (_loyaltySvc == null) return const SizedBox.shrink();
+
+    // Jika belum pilih customer → tampilkan hint
+    if (_controller.selectedCustomer == null) {
+      return _buildCard(
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E0),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.stars_rounded, color: Color(0xFFFF9800), size: 18),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Loyalty Points',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1A1D26))),
+                  Text('Pilih pelanggan untuk gunakan poin',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[400])),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Customer terpilih tapi data belum dimuat
+    if (_memberInfo == null) {
+      return _buildCard(
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E0),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.stars_rounded, color: Color(0xFFFF9800), size: 18),
+            ),
+            const SizedBox(width: 10),
+            const Text('Memuat data poin...', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const Spacer(),
+            const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFF9800))),
+          ],
+        ),
+      );
+    }
+
+    final balance    = _memberInfo!['points_balance'] as int? ?? 0;
+    final tier       = _memberInfo!['tier'] as String? ?? 'bronze';
+    final tierEmoji  = tier == 'gold' ? '🥇' : (tier == 'silver' ? '🥈' : '🥉');
+    final tierColor  = tier == 'gold'
+        ? const Color(0xFFFFD700)
+        : (tier == 'silver' ? const Color(0xFF9E9E9E) : const Color(0xFFCD7F32));
+
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3E0),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.stars_rounded, color: Color(0xFFFF9800), size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Loyalty Points',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1A1D26))),
+                    Row(
+                      children: [
+                        Text(tierEmoji, style: const TextStyle(fontSize: 11)),
+                        const SizedBox(width: 3),
+                        Text(tier.toUpperCase(),
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: tierColor)),
+                        const SizedBox(width: 8),
+                        Text('Saldo: ',
+                            style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                        Text('$balance poin',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFFF9800))),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          if (balance > 0) ...[
+            const SizedBox(height: 12),
+            Container(height: 1, color: Colors.grey[100]),
+            const SizedBox(height: 12),
+
+            // Redeem input
+            Text('Tukarkan Poin (maks $balance poin = ${_currency.format(_loyaltySvc!.pointsToRupiah(balance))})',
+                style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF4F5F7),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: TextField(
+                      controller: _redeemPointsCtrl,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      style: const TextStyle(fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: '0',
+                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        suffixText: 'poin',
+                        suffixStyle: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                      ),
+                      onChanged: (v) {
+                        final pts = int.tryParse(v) ?? 0;
+                        final clamped = pts.clamp(0, balance);
+                        _redeemPoints.value = clamped;
+                        _redeemDiscount.value = _loyaltySvc!.pointsToRupiah(clamped);
+                        if (pts > balance) {
+                          _redeemPointsCtrl.text = '$balance';
+                          _redeemPointsCtrl.selection = TextSelection.collapsed(offset: '$balance'.length);
+                        }
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Obx(() => AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: _redeemDiscount.value > 0
+                        ? const Color(0xFF4CAF50).withValues(alpha: 0.1)
+                        : const Color(0xFFF4F5F7),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: _redeemDiscount.value > 0
+                          ? const Color(0xFF4CAF50).withValues(alpha: 0.3)
+                          : Colors.grey[200]!,
+                    ),
+                  ),
+                  child: Text(
+                    _redeemDiscount.value > 0
+                        ? '- ${_currency.format(_redeemDiscount.value)}'
+                        : 'Rp 0',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: _redeemDiscount.value > 0
+                          ? const Color(0xFF4CAF50)
+                          : Colors.grey[400],
+                    ),
+                  ),
+                )),
+              ],
+            ),
+          ] else ...[
+            const SizedBox(height: 8),
+            Text('Belum ada poin. Poin akan diperoleh setelah transaksi.',
+                style: TextStyle(fontSize: 12, color: Colors.grey[400])),
+          ],
+        ],
+      ),
+    );
+  }
+
   // ── NOTES ─────────────────────────────────────────────────────────────────
   Widget _buildNotesSection() {
     return _buildCard(
@@ -1384,9 +1598,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget _buildOrderSummary() {
     return _buildCard(
       child: Obx(() {
-        final subtotal = _controller.totalAmount + _controller.totalDiscount;
-        final discount = _controller.totalDiscount;
-        final total = _controller.totalAmount;
+        final subtotal        = _controller.totalAmount + _controller.totalDiscount;
+        final discount        = _controller.totalDiscount;
+        final loyaltyDiscount = _redeemDiscount.value;
+        final total           = (_controller.totalAmount - loyaltyDiscount).clamp(0.0, double.infinity);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1397,7 +1612,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             const SizedBox(height: 14),
             _sumRow('Subtotal', _currency.format(subtotal)),
             if (discount > 0)
-              _sumRow('Diskon', '- ${_currency.format(discount)}', valueColor: Colors.red[600]),
+              _sumRow('Diskon Item', '- ${_currency.format(discount)}', valueColor: Colors.red[600]),
+            if (loyaltyDiscount > 0)
+              _sumRow('Diskon Poin', '- ${_currency.format(loyaltyDiscount)}',
+                  valueColor: const Color(0xFF4CAF50)),
             const SizedBox(height: 8),
             Container(height: 1, color: Colors.grey[200]),
             const SizedBox(height: 8),
@@ -1406,8 +1624,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               const SizedBox(height: 4),
               _sumRow('Tunai', _currency.format(_controller.cashAmount),
                   valueColor: const Color(0xFF4CAF50)),
-              if (_controller.changeAmount > 0)
-                _sumRow('Kembalian', _currency.format(_controller.changeAmount),
+              if (_controller.cashAmount > total)
+                _sumRow('Kembalian', _currency.format(_controller.cashAmount - total),
                     valueColor: const Color(0xFF4CAF50)),
             ],
           ],
@@ -1455,13 +1673,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         final isProcessing = _controller.isProcessingTransaction;
         final canPay = _controller.canProcessPayment;
         final hasPaymentEntries = _controller.paymentEntries.isNotEmpty;
+        final loyaltyDiscount = _redeemDiscount.value;
+        final effectiveTotal = (_controller.totalAmount - loyaltyDiscount).clamp(0.0, double.infinity);
         String btnLabel;
         if (!canPay) {
           btnLabel = hasPaymentEntries
               ? 'Kurang ${_currency.format(_controller.remainingAmount)}'
               : 'Tambah pembayaran';
         } else {
-          btnLabel = 'Proses Pembayaran  •  ${_currency.format(_controller.totalAmount)}';
+          btnLabel = 'Proses Pembayaran  •  ${_currency.format(effectiveTotal)}';
         }
 
         return SizedBox(
@@ -1803,9 +2023,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
 
     if (confirmed == true) {
+      final customer       = _controller.selectedCustomer;
+      final redeemPts      = _redeemPoints.value;
+      final redeemDisc     = _redeemDiscount.value;
+      final effectiveTotal = (_controller.totalAmount - redeemDisc).clamp(0.0, double.infinity);
+
       final success = await _controller.processPayment(
           notes: _notesController.text.isNotEmpty ? _notesController.text : null);
       if (success) {
+        if (_loyaltySvc != null && customer != null) {
+          try {
+            // Redeem poin (setelah transaksi berhasil, aman untuk deduct)
+            if (redeemPts > 0) {
+              await _loyaltySvc!.redeemPoints(customer.id!, redeemPts);
+            }
+            // Earn poin dari total efektif
+            final earned = await _loyaltySvc!.earnPoints(customer.id!, 0, effectiveTotal);
+            if (earned > 0) {
+              Get.snackbar(
+                'Poin Loyalty',
+                '+$earned poin untuk ${customer.name}!',
+                snackPosition: SnackPosition.BOTTOM,
+                backgroundColor: const Color(0xFFFF9800),
+                colorText: Colors.white,
+                duration: const Duration(seconds: 3),
+                icon: const Icon(Icons.stars_rounded, color: Colors.white),
+              );
+            }
+          } catch (_) {}
+        }
         Get.back();
       }
     }

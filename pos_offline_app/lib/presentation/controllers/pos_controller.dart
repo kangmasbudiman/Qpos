@@ -463,6 +463,27 @@ class POSController extends GetxController {
     _updateCartTotals();
   }
 
+  /// Cari produk berdasarkan barcode / SKU lalu tambah ke cart
+  void addToCartByBarcode(String barcode) {
+    if (barcode.trim().isEmpty) return;
+    final q = barcode.trim().toLowerCase();
+    final product = _products.firstWhereOrNull(
+      (p) => (p.barcode?.toLowerCase() == q) || p.sku.toLowerCase() == q,
+    );
+    if (product == null) {
+      Get.snackbar(
+        'Tidak Ditemukan',
+        'Produk dengan barcode "$barcode" tidak ditemukan',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.orange.shade700,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+      return;
+    }
+    addToCart(product);
+  }
+
   /// Remove product from cart
   void removeFromCart(int productId) {
     _cartItems.removeWhere((item) => item.product.id == productId);

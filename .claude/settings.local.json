@@ -21,7 +21,18 @@
       "Bash(php artisan:*)",
       "Bash(php:*)",
       "Bash(php -l:*)",
-      "WebFetch(domain:pub.dev)"
+      "WebFetch(domain:pub.dev)",
+      "Bash(/Users/admin/fvm/versions/stable/bin/flutter --version:*)",
+      "Bash(/Users/admin/fvm/versions/stable/bin/dart pub get:*)",
+      "Bash(echo:*)",
+      "Bash(dart pub get:*)",
+      "Bash(sudo xcodebuild:*)",
+      "Bash(/opt/homebrew/opt/dart@3/bin/dart pub get:*)",
+      "Bash(FLUTTER_NO_IOS=true flutter --suppress-analytics pub get:*)",
+      "Bash(FLUTTER_NO_IOS=true flutter pub get:*)",
+      "Bash(GIT_PAGER='' /usr/bin/git -C /Users/admin/development/latihanAI/pos-backend status)",
+      "Bash(SDKROOT='' /usr/bin/git -C /Users/admin/development/latihanAI/pos-backend status:*)",
+      "Bash(XCODE_DEVELOPER_DIR=/ /usr/bin/git -C /Users/admin/development/latihanAI/pos-backend status:*)"
     ]
   }
 }

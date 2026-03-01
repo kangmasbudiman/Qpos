@@ -9,6 +9,7 @@ import '../../core/constants/database_tables.dart';
 import '../../core/utils/connectivity_utils.dart';
 import '../../data/models/user_model.dart';
 import '../../data/models/branch_model.dart';
+import '../../data/models/subscription_model.dart';
 import '../database/database_helper.dart';
 import '../category/category_service.dart' show CategoryService;
 import '../inventory/inventory_service.dart' show InventoryService;
@@ -17,21 +18,23 @@ class AuthService extends GetxService {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   final DatabaseHelper _db = DatabaseHelper();
 
-  final Rxn<User> _currentUser       = Rxn<User>();
-  final RxString _authToken          = ''.obs;
-  final RxBool _isLoggedIn           = false.obs;
-  final RxBool _isLoading            = false.obs;
-  final RxList<Branch> _branches     = <Branch>[].obs;
-  final Rxn<Branch> _selectedBranch  = Rxn<Branch>();
+  final Rxn<User> _currentUser             = Rxn<User>();
+  final RxString _authToken                = ''.obs;
+  final RxBool _isLoggedIn                 = false.obs;
+  final RxBool _isLoading                  = false.obs;
+  final RxList<Branch> _branches           = <Branch>[].obs;
+  final Rxn<Branch> _selectedBranch        = Rxn<Branch>();
+  final Rxn<SubscriptionInfo> _subscription = Rxn<SubscriptionInfo>();
   // null = lihat semua cabang (khusus owner), non-null = cabang tertentu
-  final Rxn<int> viewBranchId        = Rxn<int>();
+  final Rxn<int> viewBranchId              = Rxn<int>();
 
-  User?         get currentUser    => _currentUser.value;
-  String        get authToken      => _authToken.value;
-  bool          get isLoggedIn     => _isLoggedIn.value;
-  bool          get isLoading      => _isLoading.value;
-  List<Branch>  get branches       => _branches;
-  Branch?       get selectedBranch => _selectedBranch.value;
+  User?             get currentUser    => _currentUser.value;
+  String            get authToken      => _authToken.value;
+  bool              get isLoggedIn     => _isLoggedIn.value;
+  bool              get isLoading      => _isLoading.value;
+  List<Branch>      get branches       => _branches;
+  Branch?           get selectedBranch => _selectedBranch.value;
+  SubscriptionInfo? get subscription   => _subscription.value;
 
   /// true jika owner sedang mode lihat semua cabang
   bool get isViewingAllBranches =>
@@ -54,13 +57,14 @@ class AuthService extends GetxService {
   }
 
   // Storage keys
-  static const _keyToken         = 'auth_token';
-  static const _keyUserData      = 'user_data';
-  static const _keyBranches      = 'cached_branches';
-  static const _keySelectedBranch= 'selected_branch_id';
-  static const _keyCompanyCode   = 'cached_company_code';
-  static const _keyCachedEmail   = 'cached_email';
-  static const _keyCachedPwHash  = 'cached_password_hash';
+  static const _keyToken          = 'auth_token';
+  static const _keyUserData       = 'user_data';
+  static const _keyBranches       = 'cached_branches';
+  static const _keySelectedBranch = 'selected_branch_id';
+  static const _keyCompanyCode    = 'cached_company_code';
+  static const _keyCachedEmail    = 'cached_email';
+  static const _keyCachedPwHash   = 'cached_password_hash';
+  static const _keySubscription   = 'cached_subscription';
 
   @override
   void onInit() {
@@ -92,14 +96,43 @@ class AuthService extends GetxService {
         }
         initViewBranch();
 
+        // Load cached subscription
+        final subJson = await _storage.read(key: _keySubscription);
+        if (subJson != null) {
+          _subscription.value = SubscriptionInfo.fromJson(jsonDecode(subJson));
+        }
+
         // Verify token jika online
         if (await ConnectivityUtils.hasInternetConnection()) {
           await _verifyTokenOnline();
+          await refreshSubscription(); // refresh status terbaru dari server
         }
       }
     } catch (e) {
       debugPrint('Error loading stored auth: $e');
       await logout();
+    }
+  }
+
+  /// Refresh status subscription dari server
+  Future<void> refreshSubscription() async {
+    try {
+      final token = _authToken.value;
+      if (token.isEmpty) return;
+      final response = await http.get(
+        Uri.parse('${AppConstants.baseUrl}/auth/subscription'),
+        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['subscription'] != null) {
+          final sub = SubscriptionInfo.fromJson(data['subscription']);
+          _subscription.value = sub;
+          await _storage.write(key: _keySubscription, value: jsonEncode(data['subscription']));
+        }
+      }
+    } catch (e) {
+      debugPrint('refreshSubscription error: $e');
     }
   }
 
@@ -287,6 +320,13 @@ class AuthService extends GetxService {
 
       final user     = User.fromJson(userData);
       final branches = branchesData.map((b) => Branch.fromJson(b)).toList();
+
+      // Parse subscription info
+      final subData = data['data']['subscription'] as Map<String, dynamic>?;
+      if (subData != null) {
+        _subscription.value = SubscriptionInfo.fromJson(subData);
+        await _storage.write(key: _keySubscription, value: jsonEncode(subData));
+      }
 
       _authToken.value   = token;
       _currentUser.value = user;

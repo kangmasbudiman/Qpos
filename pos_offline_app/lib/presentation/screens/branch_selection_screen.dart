@@ -47,6 +47,18 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // Cashier tidak boleh masuk halaman pilih cabang
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authService = Get.find<AuthService>();
+      if (authService.currentUser?.isCashier == true) {
+        Get.offAllNamed('/dashboard');
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final controller  = Get.find<AuthController>();
     final authService = Get.find<AuthService>();

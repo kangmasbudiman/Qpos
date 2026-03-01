@@ -22,7 +22,7 @@ class AppConstants {
   
   // Database Configuration
   static const String databaseName = 'pos_offline.db';
-  static const int databaseVersion = 7;
+  static const int databaseVersion = 8;
   
   // Sync Configuration
   static const int syncIntervalMinutes = 5;

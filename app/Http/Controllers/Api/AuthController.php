@@ -301,6 +301,7 @@ class AuthController extends Controller
                     'company_code' => $merchant->company_code,
                     'business_type'=> $merchant->business_type,
                 ],
+                'subscription' => $merchant->subscriptionInfo(),
                 'branches'   => $branches,
                 'token'      => $token,
                 'token_type' => 'Bearer',

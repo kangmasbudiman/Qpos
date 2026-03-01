@@ -13,6 +13,7 @@ import '../../data/models/branch_model.dart';
 import '../../services/auth/auth_service.dart';
 import '../../services/backup/backup_service.dart';
 import '../../services/print/bluetooth_printer_service.dart';
+import '../../services/shift/shift_service.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import '../../services/language/language_service.dart';
 import '../../services/theme/theme_service.dart';
@@ -52,6 +53,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isScanningPrinter = false;
   bool _isTestPrinting = false;
 
+  // Shift state
+  ShiftService? _shiftSvc;
+  Map<String, dynamic>? _currentShift;
+  bool _isLoadingShift = false;
+
   @override
   void initState() {
     super.initState();
@@ -63,6 +69,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (role == 'owner') {
       _authService.refreshBranches();
     }
+    try { _shiftSvc = Get.find<ShiftService>(); } catch (_) {}
+    _loadCurrentShift();
     // Track dirty state
     for (final ctrl in [_nameCtrl, _codeCtrl, _addressCtrl, _phoneCtrl, _cityCtrl]) {
       ctrl.addListener(() => setState(() => _isDirty = true));
@@ -1836,6 +1844,111 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 16),
                 ],
 
+                // ── Shift Kasir ──────────────────────────────────
+                if (_shiftSvc != null) ...[
+                  _sectionCard(
+                    icon: Icons.access_time_rounded,
+                    title: 'Shift Kasir',
+                    color: const Color(0xFF00BCD4),
+                    child: _isLoadingShift
+                        ? const Center(child: CircularProgressIndicator(color: Color(0xFF00BCD4)))
+                        : Column(
+                            children: [
+                              // Status shift aktif
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: _currentShift != null
+                                      ? const Color(0xFF4CAF50).withValues(alpha: 0.08)
+                                      : Colors.grey.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      _currentShift != null
+                                          ? Icons.lock_open_rounded
+                                          : Icons.lock_rounded,
+                                      color: _currentShift != null
+                                          ? const Color(0xFF4CAF50)
+                                          : Colors.grey,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _currentShift != null ? 'Shift Aktif' : 'Tidak Ada Shift',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                              color: _currentShift != null
+                                                  ? const Color(0xFF4CAF50)
+                                                  : Colors.grey[600],
+                                            ),
+                                          ),
+                                          if (_currentShift != null)
+                                            Text(
+                                              'Modal: Rp ${(_currentShift!['opening_cash'] as num?)?.toStringAsFixed(0) ?? "0"}',
+                                              style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Action buttons
+                              Row(
+                                children: [
+                                  if (_currentShift == null)
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: _showOpenShiftDialog,
+                                        icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                                        label: const Text('Buka Shift'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF4CAF50),
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: _showCloseShiftDialog,
+                                        icon: const Icon(Icons.stop_rounded, size: 18),
+                                        label: const Text('Tutup Shift'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFFFF6B35),
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        ),
+                                      ),
+                                    ),
+                                  const SizedBox(width: 8),
+                                  OutlinedButton.icon(
+                                    onPressed: () => Get.toNamed('/shift-history'),
+                                    icon: const Icon(Icons.history_rounded, size: 16),
+                                    label: const Text('Riwayat'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFF00BCD4),
+                                      side: const BorderSide(color: Color(0xFF00BCD4)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
                 // ── Lainnya (semua role) ──────────────────────────
                 Builder(builder: (ctx) {
                   final otherIsDark = Theme.of(ctx).brightness == Brightness.dark;
@@ -1909,6 +2022,154 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 32),
               ]),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Shift methods ──────────────────────────────────────────────────────────
+  Future<void> _loadCurrentShift() async {
+    if (_shiftSvc == null) return;
+    setState(() => _isLoadingShift = true);
+    try {
+      await _shiftSvc!.refresh();
+      if (mounted) setState(() { _currentShift = _shiftSvc!.currentShift.value; _isLoadingShift = false; });
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingShift = false);
+    }
+  }
+
+  void _showOpenShiftDialog() {
+    final cashCtrl = TextEditingController();
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Buka Shift', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Masukkan modal kas awal shift:',
+                style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+            const SizedBox(height: 12),
+            TextField(
+              controller: cashCtrl,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Modal Awal (Rp)',
+                prefixIcon: const Icon(Icons.payments_rounded, color: Color(0xFF4CAF50)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF4CAF50)),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text('Batal', style: TextStyle(color: Colors.grey[600])),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final cash = double.tryParse(cashCtrl.text) ?? 0;
+              Get.back();
+              try {
+                await _shiftSvc!.openShift(cash);
+                Get.snackbar('Shift Dibuka', 'Shift berhasil dibuka dengan modal Rp ${cash.toStringAsFixed(0)}',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: const Color(0xFF4CAF50),
+                    colorText: Colors.white);
+                _loadCurrentShift();
+              } catch (e) {
+                Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.TOP, backgroundColor: Colors.red, colorText: Colors.white);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4CAF50),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Buka Shift'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCloseShiftDialog() {
+    final cashCtrl = TextEditingController();
+    final notesCtrl = TextEditingController();
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Tutup Shift', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Masukkan jumlah kas akhir shift:',
+                style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+            const SizedBox(height: 12),
+            TextField(
+              controller: cashCtrl,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Kas Akhir (Rp)',
+                prefixIcon: const Icon(Icons.payments_rounded, color: Color(0xFFFF6B35)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFFF6B35)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: notesCtrl,
+              maxLines: 2,
+              decoration: InputDecoration(
+                labelText: 'Catatan (opsional)',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text('Batal', style: TextStyle(color: Colors.grey[600])),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final cash = double.tryParse(cashCtrl.text) ?? 0;
+              Get.back();
+              try {
+                final result = await _shiftSvc!.closeShift(
+                    closingCash: cash,
+                    notes: notesCtrl.text.isNotEmpty ? notesCtrl.text : null);
+                final variance = (result?['cash_variance'] as num?)?.toDouble() ?? 0;
+                final varStr = variance >= 0 ? '+Rp ${variance.toStringAsFixed(0)}' : '-Rp ${(-variance).toStringAsFixed(0)}';
+                Get.snackbar('Shift Ditutup',
+                    'Selisih kas: $varStr',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: variance >= 0 ? const Color(0xFF4CAF50) : Colors.orange,
+                    colorText: Colors.white,
+                    duration: const Duration(seconds: 4));
+                _loadCurrentShift();
+              } catch (e) {
+                Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.TOP, backgroundColor: Colors.red, colorText: Colors.white);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF6B35),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Tutup Shift'),
           ),
         ],
       ),

@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/pos_controller.dart';
 import '../widgets/connectivity_indicator.dart';
+import '../widgets/payzen_logo.dart';
+import '../widgets/subscription_banner.dart';
 import '../../core/localization/app_strings.dart';
 import '../../services/auth/auth_service.dart';
 import '../../services/language/language_service.dart';
@@ -12,6 +14,7 @@ import '../../services/sync/sync_service.dart';
 import '../../services/dashboard/dashboard_service.dart';
 import '../../services/database/database_helper.dart';
 import '../../services/inventory/low_stock_notification_service.dart';
+import '../../services/shift/shift_service.dart';
 import '../widgets/branch_filter_bar.dart';
 
 class DashboardScreenNew extends StatefulWidget {
@@ -36,15 +39,19 @@ class _DashboardScreenNewState extends State<DashboardScreenNew> {
     _NavItem(icon: Icons.swap_horiz_rounded,        labelKey: 'navTransfer',  route: '/stock-transfer'),
     _NavItem(icon: Icons.receipt_long_rounded,      labelKey: 'navHistory',   route: '/sales-report'),
     _NavItem(icon: Icons.show_chart_rounded,        labelKey: 'navProfitLoss',route: '/profit-loss'),
+    _NavItem(icon: Icons.stars_rounded,             labelKey: 'navLoyalty',   route: '/loyalty'),
+    _NavItem(icon: Icons.access_time_rounded,       labelKey: 'navShift',     route: '/shift-history'),
     _NavItem(icon: Icons.settings_rounded,          labelKey: 'navSettings',  route: '/settings'),
   ];
 
   // Menu yang boleh diakses cashier
   static const _cashierNavItems = [
-    _NavItem(icon: Icons.home_rounded,          labelKey: 'navHome',    route: null),
-    _NavItem(icon: Icons.point_of_sale_rounded, labelKey: 'navPos',     route: '/pos'),
-    _NavItem(icon: Icons.receipt_long_rounded,  labelKey: 'navHistory', route: '/sales-report'),
-    _NavItem(icon: Icons.settings_rounded,      labelKey: 'navSettings',route: '/settings'),
+    _NavItem(icon: Icons.home_rounded,              labelKey: 'navHome',    route: null),
+    _NavItem(icon: Icons.point_of_sale_rounded,     labelKey: 'navPos',     route: '/pos'),
+    _NavItem(icon: Icons.receipt_long_rounded,      labelKey: 'navHistory', route: '/sales-report'),
+    _NavItem(icon: Icons.stars_rounded,             labelKey: 'navLoyalty', route: '/loyalty'),
+    _NavItem(icon: Icons.access_time_rounded,       labelKey: 'navShift',   route: '/shift-history'),
+    _NavItem(icon: Icons.settings_rounded,          labelKey: 'navSettings',route: '/settings'),
   ];
 
   List<_NavItem> get _navItems {
@@ -61,6 +68,90 @@ class _DashboardScreenNewState extends State<DashboardScreenNew> {
     _dashboardService = Get.find<DashboardService>();
     // Refresh data setiap kali dashboard dibuka
     _dashboardService.loadDashboardData();
+    // Cek shift aktif — tanya buka shift jika belum ada
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkShift());
+  }
+
+  Future<void> _checkShift() async {
+    try {
+      final shiftSvc = Get.find<ShiftService>();
+      await shiftSvc.refresh();
+      if (shiftSvc.currentShift.value == null && mounted) {
+        _showOpenShiftPrompt(shiftSvc);
+      }
+    } catch (_) {}
+  }
+
+  void _showOpenShiftPrompt(ShiftService shiftSvc) {
+    final cashCtrl = TextEditingController();
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.access_time_rounded, color: Color(0xFF4CAF50), size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Text('Buka Shift', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Belum ada shift aktif hari ini.\nMasukkan modal kas awal:',
+                style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+            const SizedBox(height: 12),
+            TextField(
+              controller: cashCtrl,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'Modal Awal (Rp)',
+                prefixIcon: const Icon(Icons.payments_rounded, color: Color(0xFF4CAF50)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF4CAF50)),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text('Nanti', style: TextStyle(color: Colors.grey[600])),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final cash = double.tryParse(cashCtrl.text) ?? 0;
+              Get.back();
+              try {
+                await shiftSvc.openShift(cash);
+                Get.snackbar('Shift Dibuka', 'Selamat bekerja!',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: const Color(0xFF4CAF50),
+                    colorText: Colors.white);
+              } catch (_) {}
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4CAF50),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Buka Shift'),
+          ),
+        ],
+      ),
+      barrierDismissible: false,
+    );
   }
 
   @override
@@ -132,15 +223,14 @@ class _DashboardScreenNewState extends State<DashboardScreenNew> {
                   ),
                 ],
               ),
-              child: const Icon(Icons.point_of_sale_rounded,
-                  color: Colors.white, size: 26),
+              child: const PayzenLogo.icon(size: 30, ringColor: Colors.white),
             ),
             const SizedBox(height: 6),
             const Text(
-              'POS',
+              'PAYZEN',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 11,
+                fontSize: 7,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 3,
               ),
@@ -281,26 +371,8 @@ class _DashboardScreenNewState extends State<DashboardScreenNew> {
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
-          gradient: selected
-              ? const LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [
-                    Color(0xFFFF6B35),
-                    Color(0xFFFF6B35),
-                  ],
-                )
-              : null,
           borderRadius: BorderRadius.circular(14),
-          border: selected
-              ? Border.all(
-                  color: const Color(0xFFFF6B35).withValues(alpha: 0.3),
-                  width: 1.5,
-                )
-              : Border.all(
-                  color: Colors.transparent,
-                  width: 1.5,
-                ),
+          border: Border.all(color: Colors.transparent, width: 1.5),
         ),
         child: Stack(
           alignment: Alignment.center,
@@ -436,6 +508,7 @@ class _DashboardScreenNewState extends State<DashboardScreenNew> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SubscriptionBanner(),
           _buildHeroBanner(user, branch, greeting, now, isTablet),
           Padding(
             padding: EdgeInsets.fromLTRB(
@@ -2890,80 +2963,150 @@ class _DashboardScreenNewState extends State<DashboardScreenNew> {
   }
 
   void _showProfileSheet(String name, String role) {
+    final authService = Get.find<AuthService>();
+    final user = authService.currentUser;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (psCtx) => Builder(builder: (innerCtx) {
-        final psDark = Theme.of(innerCtx).brightness == Brightness.dark;
-        return Container(
-          height: 300,
-          decoration: BoxDecoration(
-            color: psDark ? const Color(0xFF1A1D26) : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: psDark ? const Color(0xFF2A2D3E) : Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
               ),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundColor: const Color(0xFFFF6B35),
-                      child: Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                        style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      name.isNotEmpty ? name : 'User',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: psDark ? const Color(0xFFE8E9EF) : const Color(0xFF1A1D26),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      role.isNotEmpty ? role : '-',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: psDark ? const Color(0xFF8B8FA8) : Colors.grey,
-                      ),
-                    ),
-                  ],
+            ),
+            const SizedBox(height: 20),
+
+            // Avatar besar
+            Container(
+              width: 64, height: 64,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFFF6B35), Color(0xFFFF8C42)],
+                  begin: Alignment.topLeft,
+                  end:   Alignment.bottomRight,
                 ),
+                shape: BoxShape.circle,
               ),
-              Divider(height: 1, color: psDark ? const Color(0xFF2A2D3E) : Colors.grey.shade200),
-              ListTile(
-                leading: const Icon(Icons.logout_rounded, color: Color(0xFFFF6B35)),
-                title: Text(
-                  'Logout',
-                  style: TextStyle(
-                    color: psDark ? const Color(0xFFE8E9EF) : const Color(0xFF1A1D26),
+              child: Center(
+                child: Text(
+                  (user?.name ?? 'U')[0].toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold, fontSize: 26,
                   ),
                 ),
-                onTap: () async {
-                  Get.back();
-                  await Get.find<AuthService>().logout();
-                  Get.offAllNamed('/login');
-                },
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Nama
+            Text(
+              user?.name ?? '-',
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF1A1D26)),
+            ),
+            const SizedBox(height: 4),
+
+            // Email
+            Text(
+              user?.email ?? '-',
+              style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+            ),
+            const SizedBox(height: 6),
+
+            // Role badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                (user?.role ?? 'user').toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFFF6B35),
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+
+            // Branch info
+            if (authService.selectedBranch != null) ...[
+              const SizedBox(height: 6),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.storefront_rounded, size: 13, color: Colors.grey[400]),
+                  const SizedBox(width: 4),
+                  Text(
+                    authService.selectedBranch!.name,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                  ),
+                ],
               ),
             ],
-          ),
-        );
-      }), // end Builder psDark
+
+            const SizedBox(height: 24),
+            const Divider(height: 1),
+            const SizedBox(height: 16),
+
+            // Tombol Logout
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  Get.back();
+                  final confirm = await Get.dialog<bool>(
+                    AlertDialog(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      title: const Text('Keluar Aplikasi',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      content: const Text('Yakin ingin logout dari akun ini?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Get.back(result: false),
+                          child: const Text('Batal'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Get.back(result: true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red[600],
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text('Logout'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) {
+                    await authService.logout();
+                    Get.offAllNamed('/login');
+                  }
+                },
+                icon: const Icon(Icons.logout_rounded, size: 18),
+                label: const Text('Logout', style: TextStyle(fontWeight: FontWeight.w600)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red[600],
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

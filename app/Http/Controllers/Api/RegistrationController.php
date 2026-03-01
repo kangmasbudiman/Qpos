@@ -134,13 +134,15 @@ class RegistrationController extends Controller
             $companyCode = strtoupper(Str::random(8));
         } while (Merchant::where('company_code', $companyCode)->exists());
 
-        // Update merchant: approved + generate company_code + aktifkan
+        // Update merchant: approved + generate company_code + aktifkan + mulai trial 7 hari
         $merchant->update([
             'registration_status' => 'approved',
             'company_code'        => $companyCode,
             'is_active'           => true,
             'approved_at'         => now(),
             'rejection_reason'    => null,
+            'subscription_status' => 'trial',
+            'trial_ends_at'       => now()->addDays(7),
         ]);
 
         // Aktifkan user owner

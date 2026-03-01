@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'presentation/screens/login_screen.dart';
+import 'presentation/screens/subscription_expired_screen.dart';
+import 'presentation/widgets/payzen_logo.dart';
 import 'presentation/screens/forgot_password_screen.dart';
 import 'presentation/screens/register_screen.dart';
 import 'presentation/screens/check_registration_screen.dart';
@@ -51,6 +53,10 @@ import 'services/theme/theme_service.dart';
 import 'services/language/language_service.dart';
 import 'services/backup/backup_service.dart';
 import 'services/branch/branch_service.dart';
+import 'services/loyalty/loyalty_service.dart';
+import 'services/shift/shift_service.dart';
+import 'presentation/screens/loyalty_screen.dart';
+import 'presentation/screens/shift_history_screen.dart';
 import 'core/theme/app_theme.dart';
 
 void main() async {
@@ -95,6 +101,8 @@ Future<void> _initializeServices() async {
   Get.put(BluetoothPrinterService(), permanent: true);
   Get.put(BackupService(), permanent: true);
   Get.put(BranchService(), permanent: true);
+  Get.put(LoyaltyService(), permanent: true);
+  Get.put(ShiftService(), permanent: true);
   Get.put(RegistrationService(), permanent: true);
   Get.put(AuthController(), permanent: true);
   Get.put(CategoryController(), permanent: true);
@@ -227,6 +235,18 @@ class POSApp extends StatelessWidget {
                 page: () => const StockTransferScreen(),
                 transition: Transition.rightToLeft,
                 transitionDuration: const Duration(milliseconds: 250)),
+              GetPage(name: '/loyalty',
+                page: () => const LoyaltyScreen(),
+                transition: Transition.rightToLeft,
+                transitionDuration: const Duration(milliseconds: 250)),
+              GetPage(name: '/shift-history',
+                page: () => const ShiftHistoryScreen(),
+                transition: Transition.rightToLeft,
+                transitionDuration: const Duration(milliseconds: 250)),
+              GetPage(name: '/subscription-expired',
+                page: () => const SubscriptionExpiredScreen(),
+                transition: Transition.fadeIn,
+                transitionDuration: const Duration(milliseconds: 300)),
             ],
           );
         });
@@ -256,18 +276,22 @@ class _SplashScreenState extends State<SplashScreen> {
     if (authService.isLoggedIn) {
       final user = authService.currentUser;
 
-      // Super admin → panel khusus
+      // Super admin → panel khusus (tidak perlu cek subscription)
       if (user?.isSuperAdmin == true) {
         Get.offAllNamed('/super-admin');
         return;
       }
 
-      // Cashier selalu bypass branch selection (branch sudah di-assign dari backend)
+      // Cek subscription — jika expired/suspended → halaman terkunci
+      final sub = authService.subscription;
+      if (sub != null && !sub.canAccess) {
+        Get.offAllNamed('/subscription-expired');
+        return;
+      }
+
+      // Cashier selalu bypass branch selection
       final isCashier = user?.isCashier == true;
 
-      // Jika ada branch yang sudah dipilih sebelumnya → langsung ke dashboard
-      // Jika cashier → langsung ke dashboard (tidak perlu pilih branch)
-      // Jika ada daftar branch tapi belum dipilih → ke branch selection
       if (authService.selectedBranch != null ||
           authService.branches.isEmpty ||
           isCashier) {
@@ -283,35 +307,32 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.accent,
+      backgroundColor: Colors.white,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.point_of_sale,
-              size: 80.sp,
-              color: Colors.white,
-            ),
-            SizedBox(height: 20.h),
-            Text(
-              'PAYZEN',
-              style: TextStyle(
-                fontSize: 32.sp,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            SizedBox(height: 8.h),
+            // Logo horizontal persis seperti referensi (navy + oranye di bg putih)
+            const PayzenLogo.horizontal(size: 72),
+            SizedBox(height: 10.h),
             Text(
               'POS & Payment Solution',
               style: TextStyle(
-                fontSize: 16.sp,
-                color: Colors.white70,
+                fontSize: 13.sp,
+                color: const Color(0xFF1E2A5E).withValues(alpha: 0.45),
+                letterSpacing: 0.8,
+                fontWeight: FontWeight.w500,
               ),
             ),
-            SizedBox(height: 40.h),
-            CircularProgressIndicator(color: Colors.white),
+            SizedBox(height: 52.h),
+            const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                color: Color(0xFFE8460A),
+                strokeWidth: 2.5,
+              ),
+            ),
           ],
         ),
       ),

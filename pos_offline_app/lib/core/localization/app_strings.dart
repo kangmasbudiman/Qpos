@@ -40,6 +40,8 @@ class AppStrings {
     'navTransfer':      {'id': 'Transfer', 'en': 'Transfer'},
     'navHistory':       {'id': 'Riwayat', 'en': 'History'},
     'navProfitLoss':    {'id': 'Laba Rugi', 'en': 'P&L'},
+    'navLoyalty':       {'id': 'Loyalty', 'en': 'Loyalty'},
+    'navShift':         {'id': 'Shift', 'en': 'Shift'},
     'navSettings':      {'id': 'Setelan', 'en': 'Settings'},
     'navInventoryReport': {'id': 'Inv. Report', 'en': 'Inv. Report'},
 

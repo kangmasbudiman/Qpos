@@ -278,6 +278,52 @@ class DatabaseHelper {
       )
     ''');
 
+    // Loyalty Member tables (v8)
+    await db.execute('''
+      CREATE TABLE ${DatabaseTables.loyaltyMembers} (
+        ${DatabaseColumns.id} INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER UNIQUE NOT NULL,
+        points_balance INTEGER DEFAULT 0,
+        total_points_earned INTEGER DEFAULT 0,
+        tier TEXT DEFAULT 'bronze',
+        ${DatabaseColumns.createdAt} TEXT NOT NULL,
+        ${DatabaseColumns.updatedAt} TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE ${DatabaseTables.loyaltyTransactions} (
+        ${DatabaseColumns.id} INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER NOT NULL,
+        sale_id INTEGER,
+        type TEXT NOT NULL,
+        points INTEGER NOT NULL,
+        description TEXT,
+        ${DatabaseColumns.createdAt} TEXT NOT NULL
+      )
+    ''');
+
+    // Cashier Shift table (v8)
+    await db.execute('''
+      CREATE TABLE ${DatabaseTables.cashierShifts} (
+        ${DatabaseColumns.id} INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        user_name TEXT,
+        branch_id INTEGER,
+        opened_at TEXT NOT NULL,
+        closed_at TEXT,
+        opening_cash REAL DEFAULT 0,
+        closing_cash REAL,
+        expected_cash REAL,
+        cash_variance REAL,
+        total_sales INTEGER DEFAULT 0,
+        total_revenue REAL DEFAULT 0,
+        status TEXT DEFAULT 'open',
+        notes TEXT,
+        ${DatabaseColumns.createdAt} TEXT NOT NULL
+      )
+    ''');
+
     // Create indexes for better performance
     await db.execute('CREATE INDEX idx_products_sku ON ${DatabaseTables.products}(sku)');
     await db.execute('CREATE INDEX idx_sales_invoice ON ${DatabaseTables.sales}(invoice_number)');
@@ -403,6 +449,51 @@ class DatabaseHelper {
           variance INTEGER NOT NULL,
           notes TEXT,
           FOREIGN KEY (stock_opname_id) REFERENCES ${DatabaseTables.stockOpnames} (${DatabaseColumns.id}) ON DELETE CASCADE
+        )
+      ''');
+    }
+    if (oldVersion < 8) {
+      // Loyalty Member tables
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS ${DatabaseTables.loyaltyMembers} (
+          ${DatabaseColumns.id} INTEGER PRIMARY KEY AUTOINCREMENT,
+          customer_id INTEGER UNIQUE NOT NULL,
+          points_balance INTEGER DEFAULT 0,
+          total_points_earned INTEGER DEFAULT 0,
+          tier TEXT DEFAULT 'bronze',
+          ${DatabaseColumns.createdAt} TEXT NOT NULL,
+          ${DatabaseColumns.updatedAt} TEXT
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS ${DatabaseTables.loyaltyTransactions} (
+          ${DatabaseColumns.id} INTEGER PRIMARY KEY AUTOINCREMENT,
+          customer_id INTEGER NOT NULL,
+          sale_id INTEGER,
+          type TEXT NOT NULL,
+          points INTEGER NOT NULL,
+          description TEXT,
+          ${DatabaseColumns.createdAt} TEXT NOT NULL
+        )
+      ''');
+      // Cashier Shift table
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS ${DatabaseTables.cashierShifts} (
+          ${DatabaseColumns.id} INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          user_name TEXT,
+          branch_id INTEGER,
+          opened_at TEXT NOT NULL,
+          closed_at TEXT,
+          opening_cash REAL DEFAULT 0,
+          closing_cash REAL,
+          expected_cash REAL,
+          cash_variance REAL,
+          total_sales INTEGER DEFAULT 0,
+          total_revenue REAL DEFAULT 0,
+          status TEXT DEFAULT 'open',
+          notes TEXT,
+          ${DatabaseColumns.createdAt} TEXT NOT NULL
         )
       ''');
     }

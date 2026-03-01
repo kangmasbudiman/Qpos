@@ -101,7 +101,12 @@ class AuthController extends GetxController {
 
     switch (result) {
       case LoginResult.needBranchSelection:
-        Get.offAllNamed('/branch-selection');
+        // Cashier tidak boleh pilih cabang — langsung ke dashboard
+        if (_authService.currentUser?.isCashier == true) {
+          Get.offAllNamed('/dashboard');
+        } else {
+          Get.offAllNamed('/branch-selection');
+        }
         break;
       case LoginResult.success:
         final isSuperAdmin = _authService.currentUser?.isSuperAdmin == true;

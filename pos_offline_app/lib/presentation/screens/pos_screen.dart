@@ -7,9 +7,12 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../controllers/pos_controller.dart';
 import '../widgets/connectivity_indicator.dart';
+import '../widgets/payzen_logo.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/models/product_model.dart';
 import '../../services/auth/auth_service.dart';
+import '../../services/inventory/low_stock_notification_service.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 class POSScreen extends StatefulWidget {
   const POSScreen({Key? key}) : super(key: key);
@@ -20,6 +23,15 @@ class POSScreen extends StatefulWidget {
 
 class _POSScreenState extends State<POSScreen> {
   final _currency = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+  final _barcodeFocusNode = FocusNode();
+  final _barcodeCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _barcodeCtrl.dispose();
+    _barcodeFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,11 +80,12 @@ class _POSScreenState extends State<POSScreen> {
     final sidebarW    = isTablet ? 88.0 : 72.0;
 
     final isCashier = user?.isCashier == true;
+    final lowStockSvc = Get.find<LowStockNotificationService>();
     final navItems = [
       _SideNavItem(icon: Icons.home_rounded,           label: 'Home',    onTap: () => Get.offAllNamed('/dashboard')),
       _SideNavItem(icon: Icons.point_of_sale_rounded,  label: 'Kasir',   onTap: null, selected: true),
       if (!isCashier)
-        _SideNavItem(icon: Icons.inventory_2_rounded,  label: 'Produk',  onTap: () => Get.toNamed('/inventory')),
+        _SideNavItem(icon: Icons.inventory_2_rounded,  label: 'Produk',  onTap: () => Get.toNamed('/inventory'), badgeService: lowStockSvc),
       _SideNavItem(icon: Icons.receipt_long_rounded,   label: 'Riwayat', onTap: () => Get.toNamed('/sales-report')),
       if (!isCashier)
         _SideNavItem(icon: Icons.settings_rounded,     label: 'Setelan', onTap: () => Get.toNamed('/settings')),
@@ -100,28 +113,7 @@ class _POSScreenState extends State<POSScreen> {
             const SizedBox(height: 16),
 
             // ── Logo ──
-            Container(
-              width: 40, height: 40,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin:  Alignment.topLeft,
-                  end:    Alignment.bottomRight,
-                  colors: [Color(0xFFFF6B35), Color(0xFFFF8C42)],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.point_of_sale_rounded, color: Colors.white, size: 20),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'POS',
-              style: TextStyle(
-                color:         Colors.white,
-                fontSize:      9,
-                fontWeight:    FontWeight.w700,
-                letterSpacing: 2,
-              ),
-            ),
+            const PayzenLogo.icon(size: 44, ringColor: Colors.white),
             const SizedBox(height: 12),
             Container(
               height: 1,
@@ -148,18 +140,19 @@ class _POSScreenState extends State<POSScreen> {
             ),
             const SizedBox(height: 8),
 
-            // Branch switcher
-            if (user != null && (user.isOwner || user.isManager))
-              GestureDetector(
+            // Branch switcher — hanya untuk owner & manager, hidden untuk kasir
+            Obx(() {
+              final u = authService.currentUser;
+              if (u == null || u.isCashier) return const SizedBox.shrink();
+              final branch = authService.selectedBranch;
+              return GestureDetector(
                 onTap: () => _showBranchSwitcher(authService),
-                child: Obx(() {
-                  final branch = authService.selectedBranch;
-                  return _sidebarBottomItem(
-                    icon:  Icons.storefront_rounded,
-                    label: branch?.name ?? 'Pilih',
-                  );
-                }),
-              ),
+                child: _sidebarBottomItem(
+                  icon:  Icons.storefront_rounded,
+                  label: branch?.name ?? 'Pilih',
+                ),
+              );
+            }),
 
             // Customer Display
             Obx(() {
@@ -179,36 +172,43 @@ class _POSScreenState extends State<POSScreen> {
             const ConnectivityDot(),
             const SizedBox(height: 6),
 
-            // Avatar
-            Container(
-              width: 36, height: 36,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFFFF6B35), Color(0xFFFF8C42)],
-                  begin: Alignment.topLeft,
-                  end:   Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  (user?.name ?? 'U')[0].toUpperCase(),
-                  style: const TextStyle(
-                    color:      Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize:   14,
+            // Avatar + nama — tap untuk info user & logout
+            GestureDetector(
+              onTap: () => _showUserMenu(authService),
+              child: Column(
+                children: [
+                  Container(
+                    width: 36, height: 36,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFFFF6B35), Color(0xFFFF8C42)],
+                        begin: Alignment.topLeft,
+                        end:   Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        (user?.name ?? 'U')[0].toUpperCase(),
+                        style: const TextStyle(
+                          color:      Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize:   14,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 4),
+                  Text(
+                    user != null ? user.name.split(' ').first : 'User',
+                    style: TextStyle(
+                      color:    Colors.white.withValues(alpha: 0.5),
+                      fontSize: 8,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              user != null ? user.name.split(' ').first : 'User',
-              style: TextStyle(
-                color:    Colors.white.withValues(alpha: 0.5),
-                fontSize: 8,
-              ),
-              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 12),
           ],
@@ -221,52 +221,96 @@ class _POSScreenState extends State<POSScreen> {
     return GestureDetector(
       onTap: item.onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve:    Curves.easeInOut,
+        duration: const Duration(milliseconds: 250),
+        curve:    Curves.easeOutBack,
         width:    double.infinity,
-        margin:   const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-        padding:  const EdgeInsets.symmetric(vertical: 10),
+        margin:   const EdgeInsets.symmetric(vertical: 4),
+        padding:  const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
-          color:        item.selected
-              ? Colors.white.withValues(alpha: 0.1)
-              : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.transparent, width: 1.5),
         ),
         child: Stack(
           alignment: Alignment.center,
           children: [
+            // Left indicator pill — sama persis dengan dashboard
             if (item.selected)
               Positioned(
                 left: 0,
                 child: Container(
-                  width:  3,
-                  height: 28,
+                  width: 5,
+                  height: 32,
                   decoration: BoxDecoration(
-                    color:        const Color(0xFFFF6B35),
-                    borderRadius: BorderRadius.circular(4),
+                    gradient: const LinearGradient(
+                      begin:  Alignment.topCenter,
+                      end:    Alignment.bottomCenter,
+                      colors: [Color(0xFFFF6B35), Color(0xFFFF8C42), Color(0xFFFF6B35)],
+                      stops:  [0.0, 0.5, 1.0],
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      topRight:    Radius.circular(6),
+                      bottomRight: Radius.circular(6),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color:      const Color(0xFFFF6B35).withValues(alpha: 0.5),
+                        blurRadius: 8,
+                        offset:     const Offset(2, 0),
+                      ),
+                    ],
                   ),
                 ),
               ),
+            // Icon + label
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  item.icon,
-                  color: item.selected
-                      ? const Color(0xFFFF6B35)
-                      : Colors.white.withValues(alpha: 0.35),
-                  size: 22,
+                AnimatedScale(
+                  scale:    item.selected ? 1.15 : 1.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: item.selected
+                        ? const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin:  Alignment.topLeft,
+                              end:    Alignment.bottomRight,
+                              colors: [Color(0xFFFF6B35), Color(0xFFFF8C42), Color(0xFFFFA05F)],
+                            ),
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            boxShadow: [
+                              BoxShadow(
+                                color:      Color(0xFFFF6B35),
+                                blurRadius: 10,
+                                offset:     Offset(0, 4),
+                              ),
+                            ],
+                          )
+                        : BoxDecoration(borderRadius: BorderRadius.circular(12)),
+                    child: Builder(builder: (_) {
+                      final iconWidget = Icon(
+                        item.icon,
+                        color: item.selected ? Colors.white : Colors.white.withValues(alpha: 0.4),
+                        size:  item.selected ? 22 : 20,
+                      );
+                      return item.badgeService != null
+                          ? item.badgeService!.buildBadge(child: iconWidget)
+                          : iconWidget;
+                    }),
+                  ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 5),
                 Text(
                   item.label,
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize:      9,
-                    fontWeight:    item.selected ? FontWeight.w700 : FontWeight.w400,
+                    fontWeight:    item.selected ? FontWeight.w700 : FontWeight.w500,
                     color:         item.selected
                         ? const Color(0xFFFF6B35)
                         : Colors.white.withValues(alpha: 0.35),
                     letterSpacing: 0.3,
+                    height:        1.2,
                   ),
                 ),
               ],
@@ -322,42 +366,47 @@ class _POSScreenState extends State<POSScreen> {
           const Text('Kasir',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A1D26))),
           const Spacer(),
-          // Tombol branch (owner & manager)
-          if (user != null && (user.isOwner || user.isManager)) ...[
-            Obx(() {
-              final branch = authService.selectedBranch;
-              return GestureDetector(
-                onTap: () => _showBranchSwitcher(authService),
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 120),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  decoration: BoxDecoration(
-                    color:        const Color(0xFFF4F5F7),
-                    borderRadius: BorderRadius.circular(10),
-                    border:       Border.all(color: const Color(0xFFE0E0E0)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.storefront_rounded, size: 13, color: Color(0xFFFF6B35)),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          branch?.name ?? 'Cabang',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1A1D26)),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+          // Tombol branch — hanya owner & manager, hidden untuk kasir
+          Obx(() {
+            final u = authService.currentUser;
+            if (u == null || u.isCashier) return const SizedBox.shrink();
+            final branch = authService.selectedBranch;
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: () => _showBranchSwitcher(authService),
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 120),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    decoration: BoxDecoration(
+                      color:        const Color(0xFFF4F5F7),
+                      borderRadius: BorderRadius.circular(10),
+                      border:       Border.all(color: const Color(0xFFE0E0E0)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.storefront_rounded, size: 13, color: Color(0xFFFF6B35)),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            branch?.name ?? 'Cabang',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1A1D26)),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 2),
-                      const Icon(Icons.expand_more_rounded, size: 13, color: Color(0xFF8A8F9E)),
-                    ],
+                        const SizedBox(width: 2),
+                        const Icon(Icons.expand_more_rounded, size: 13, color: Color(0xFF8A8F9E)),
+                      ],
+                    ),
                   ),
                 ),
-              );
-            }),
-            const SizedBox(width: 8),
-          ],
+                const SizedBox(width: 8),
+              ],
+            );
+          }),
           const ConnectivityDot(),
         ],
       ),
@@ -370,6 +419,7 @@ class _POSScreenState extends State<POSScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildProductHeader(controller, isTablet),
+        _buildBarcodeInputField(controller),
         _buildCategoryChips(controller),
         Expanded(
           child: Obx(() {
@@ -423,7 +473,21 @@ class _POSScreenState extends State<POSScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
+          // ── Tombol Kamera Scanner ──
+          GestureDetector(
+            onTap: () => _showCameraScanner(context, Get.find<POSController>()),
+            child: Container(
+              height: 44, width: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1D26),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8)],
+              ),
+              child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
+            ),
+          ),
+          const SizedBox(width: 8),
           // ── Tombol Refresh dari Backend ──
           Obx(() => GestureDetector(
             onTap: controller.isLoadingProducts
@@ -448,6 +512,40 @@ class _POSScreenState extends State<POSScreen> {
             ),
           )),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBarcodeInputField(POSController controller) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+      child: Container(
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE0E0E0)),
+        ),
+        child: TextField(
+          controller: _barcodeCtrl,
+          focusNode: _barcodeFocusNode,
+          style: const TextStyle(fontSize: 13),
+          decoration: InputDecoration(
+            hintText: 'Scan barcode keyboard / ketik barcode...',
+            hintStyle: TextStyle(fontSize: 12, color: Colors.grey[400]),
+            prefixIcon: const Icon(Icons.barcode_reader, color: Color(0xFFFF6B35), size: 18),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+          ),
+          onSubmitted: (value) {
+            final barcode = value.trim();
+            if (barcode.isNotEmpty) {
+              controller.addToCartByBarcode(barcode);
+              _barcodeCtrl.clear();
+              _barcodeFocusNode.requestFocus();
+            }
+          },
+        ),
       ),
     );
   }
@@ -867,43 +965,44 @@ class _POSScreenState extends State<POSScreen> {
                       'Current Order',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A1D26)),
                     ),
-                    // Tombol switch branch (owner & manager)
-                    if (user != null && (user.isOwner || user.isManager))
-                      Obx(() {
-                        final branch = authService.selectedBranch;
-                        return GestureDetector(
-                          onTap: () => _showBranchSwitcher(authService),
-                          child: Container(
-                            constraints: const BoxConstraints(maxWidth: 130),
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                            decoration: BoxDecoration(
-                              color:        const Color(0xFFF4F5F7),
-                              borderRadius: BorderRadius.circular(10),
-                              border:       Border.all(color: const Color(0xFFE0E0E0)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.storefront_rounded, size: 13, color: Color(0xFFFF6B35)),
-                                const SizedBox(width: 4),
-                                Flexible(
-                                  child: Text(
-                                    branch?.name ?? 'Pilih Cabang',
-                                    style: const TextStyle(
-                                      fontSize: 11, fontWeight: FontWeight.w600,
-                                      color: Color(0xFF1A1D26),
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
-                                  ),
-                                ),
-                                const SizedBox(width: 2),
-                                const Icon(Icons.expand_more_rounded, size: 13, color: Color(0xFF8A8F9E)),
-                              ],
-                            ),
+                    // Tombol switch branch — hanya owner & manager, hidden untuk kasir
+                    Obx(() {
+                      final u = authService.currentUser;
+                      if (u == null || u.isCashier) return const SizedBox.shrink();
+                      final branch = authService.selectedBranch;
+                      return GestureDetector(
+                        onTap: () => _showBranchSwitcher(authService),
+                        child: Container(
+                          constraints: const BoxConstraints(maxWidth: 130),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          decoration: BoxDecoration(
+                            color:        const Color(0xFFF4F5F7),
+                            borderRadius: BorderRadius.circular(10),
+                            border:       Border.all(color: const Color(0xFFE0E0E0)),
                           ),
-                        );
-                      }),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.storefront_rounded, size: 13, color: Color(0xFFFF6B35)),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  branch?.name ?? 'Pilih Cabang',
+                                  style: const TextStyle(
+                                    fontSize: 11, fontWeight: FontWeight.w600,
+                                    color: Color(0xFF1A1D26),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              const Icon(Icons.expand_more_rounded, size: 13, color: Color(0xFF8A8F9E)),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -1210,6 +1309,154 @@ class _POSScreenState extends State<POSScreen> {
           ],
         ),
       )),
+    );
+  }
+
+  // ── USER MENU (info akun + logout) ────────────────────────────────────────
+  void _showUserMenu(AuthService authService) {
+    final user = authService.currentUser;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Avatar besar
+            Container(
+              width: 64, height: 64,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFFF6B35), Color(0xFFFF8C42)],
+                  begin: Alignment.topLeft,
+                  end:   Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  (user?.name ?? 'U')[0].toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold, fontSize: 26,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Nama
+            Text(
+              user?.name ?? '-',
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF1A1D26)),
+            ),
+            const SizedBox(height: 4),
+
+            // Email
+            Text(
+              user?.email ?? '-',
+              style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+            ),
+            const SizedBox(height: 6),
+
+            // Role badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                (user?.role ?? 'user').toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFFF6B35),
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+
+            // Branch info
+            if (authService.selectedBranch != null) ...[
+              const SizedBox(height: 6),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.storefront_rounded, size: 13, color: Colors.grey[400]),
+                  const SizedBox(width: 4),
+                  Text(
+                    authService.selectedBranch!.name,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                  ),
+                ],
+              ),
+            ],
+
+            const SizedBox(height: 24),
+            const Divider(height: 1),
+            const SizedBox(height: 16),
+
+            // Tombol Logout
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  Get.back(); // tutup bottom sheet dulu
+                  final confirm = await Get.dialog<bool>(
+                    AlertDialog(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      title: const Text('Keluar Aplikasi',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      content: const Text('Yakin ingin logout dari akun ini?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Get.back(result: false),
+                          child: const Text('Batal'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Get.back(result: true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red[600],
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text('Logout'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) {
+                    await authService.logout();
+                    Get.offAllNamed('/login');
+                  }
+                },
+                icon: const Icon(Icons.logout_rounded, size: 18),
+                label: const Text('Logout', style: TextStyle(fontWeight: FontWeight.w600)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red[600],
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1709,6 +1956,73 @@ void _showHoldTransactionDialog(POSController controller) {
     );
   }
 
+  void _showCameraScanner(BuildContext context, POSController controller) {
+    bool _scanned = false;
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: EdgeInsets.zero,
+        backgroundColor: Colors.black,
+        content: SizedBox(
+          width: 320,
+          height: 380,
+          child: Stack(
+            children: [
+              // Scanner view
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: MobileScanner(
+                  onDetect: (capture) {
+                    if (_scanned) return;
+                    final barcode = capture.barcodes.firstOrNull?.rawValue;
+                    if (barcode != null && barcode.isNotEmpty) {
+                      _scanned = true;
+                      Get.back();
+                      controller.addToCartByBarcode(barcode);
+                    }
+                  },
+                ),
+              ),
+              // Overlay frame
+              Center(
+                child: Container(
+                  width: 200,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFFFF6B35), width: 3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              // Label atas
+              const Positioned(
+                top: 16,
+                left: 0, right: 0,
+                child: Text(
+                  'Arahkan ke barcode produk',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+              // Tombol close
+              Positioned(
+                bottom: 16,
+                left: 0, right: 0,
+                child: Center(
+                  child: TextButton(
+                    onPressed: () => Get.back(),
+                    child: const Text('Batal', style: TextStyle(color: Color(0xFFFF6B35), fontSize: 14)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      barrierColor: Colors.black54,
+    );
+  }
+
 // ── Data class ────────────────────────────────────────────────────────────
 
 class _SideNavItem {
@@ -1716,10 +2030,12 @@ class _SideNavItem {
   final String        label;
   final VoidCallback? onTap;
   final bool          selected;
+  final LowStockNotificationService? badgeService;
   const _SideNavItem({
     required this.icon,
     required this.label,
     required this.onTap,
     this.selected = false,
+    this.badgeService,
   });
 }

@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\ProfitLossController;
 use App\Http\Controllers\Api\StockOpnameController;
 use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\RegistrationController;
+use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\DisplayController;
 
 /*
@@ -40,15 +41,19 @@ Route::prefix('auth')->group(function () {
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
-    
-    // Auth routes
+
+    // Auth routes (tidak kena subscription check — perlu untuk cek status)
     Route::prefix('auth')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('profile', [AuthController::class, 'profile']);
         Route::put('profile', [AuthController::class, 'updateProfile']);
         Route::post('change-password', [AuthController::class, 'changePassword']);
         Route::get('branches', [AuthController::class, 'branches']);
+        Route::get('subscription', [SubscriptionController::class, 'status']); // cek status tanpa block
     });
+
+    // Semua route di bawah ini kena subscription check
+    Route::middleware('subscription')->group(function () {
 
     // Categories
     Route::apiResource('categories', CategoryController::class);
@@ -132,5 +137,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [StockOpnameController::class, 'index']);
         Route::post('/', [StockOpnameController::class, 'store']);
         Route::get('{stockOpname}', [StockOpnameController::class, 'show']);
+    });
+
+    }); // end middleware('subscription')
+
+    // Super Admin — kelola subscription merchant
+    Route::middleware('super_admin')->prefix('subscriptions')->group(function () {
+        Route::get('/', [SubscriptionController::class, 'index']);
+        Route::post('{merchantId}/activate', [SubscriptionController::class, 'activate']);
+        Route::post('{merchantId}/extend', [SubscriptionController::class, 'extend']);
+        Route::post('{merchantId}/suspend', [SubscriptionController::class, 'suspend']);
+        Route::post('{merchantId}/reset-trial', [SubscriptionController::class, 'resetTrial']);
     });
 });
