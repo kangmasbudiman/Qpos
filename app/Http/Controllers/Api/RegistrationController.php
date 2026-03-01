@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Mail\RegistrationApproved;
 use App\Mail\RegistrationRejected;
+use App\Models\AppSetting;
 use App\Models\Branch;
 use App\Models\Merchant;
 use App\Models\User;
@@ -142,7 +143,7 @@ class RegistrationController extends Controller
             'approved_at'         => now(),
             'rejection_reason'    => null,
             'subscription_status' => 'trial',
-            'trial_ends_at'       => now()->addDays(7),
+            'trial_ends_at'       => now()->addDays(AppSetting::trialDays()),
         ]);
 
         // Aktifkan user owner

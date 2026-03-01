@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Merchant;
+use App\Models\AppSetting;
 use Illuminate\Http\Request;
 
 class SubscriptionController extends Controller
@@ -24,6 +25,13 @@ class SubscriptionController extends Controller
         return response()->json([
             'success'      => true,
             'subscription' => $merchant->subscriptionInfo(),
+            'pricing'      => [
+                'price_monthly'    => AppSetting::priceMonthly(),
+                'price_yearly'     => AppSetting::priceYearly(),
+                'trial_days'       => AppSetting::trialDays(),
+                'support_email'    => AppSetting::get('support_email', 'support@payzen.id'),
+                'support_whatsapp' => AppSetting::get('support_whatsapp', ''),
+            ],
         ]);
     }
 
@@ -51,13 +59,14 @@ class SubscriptionController extends Controller
 
     /**
      * Aktifkan langganan berbayar.
-     * Body: { plan_type: 'monthly'|'yearly', amount: 99000 }
+     * Body: { plan_type: 'monthly'|'yearly', amount?: 99000 }
+     * Jika amount tidak dikirim, pakai harga dari AppSetting.
      */
     public function activate(Request $request, $merchantId)
     {
         $request->validate([
             'plan_type' => 'required|in:monthly,yearly',
-            'amount'    => 'required|numeric|min:0',
+            'amount'    => 'sometimes|numeric|min:0',
         ]);
 
         $merchant = Merchant::findOrFail($merchantId);
@@ -65,12 +74,17 @@ class SubscriptionController extends Controller
         $months = $request->plan_type === 'yearly' ? 12 : 1;
         $endsAt = now()->addMonths($months);
 
+        // Gunakan amount dari request, atau fallback ke setting
+        $amount = $request->filled('amount')
+            ? $request->amount
+            : ($request->plan_type === 'yearly' ? AppSetting::priceYearly() : AppSetting::priceMonthly());
+
         $merchant->update([
             'subscription_status'  => 'active',
             'subscription_ends_at' => $endsAt,
             'plan_type'            => $request->plan_type,
             'last_payment_at'      => now(),
-            'last_payment_amount'  => $request->amount,
+            'last_payment_amount'  => $amount,
         ]);
 
         return response()->json([
@@ -82,17 +96,21 @@ class SubscriptionController extends Controller
 
     /**
      * Perpanjang langganan yang sudah ada.
-     * Body: { plan_type: 'monthly'|'yearly', amount: 99000 }
+     * Body: { plan_type: 'monthly'|'yearly', amount?: 99000 }
      */
     public function extend(Request $request, $merchantId)
     {
         $request->validate([
             'plan_type' => 'required|in:monthly,yearly',
-            'amount'    => 'required|numeric|min:0',
+            'amount'    => 'sometimes|numeric|min:0',
         ]);
 
         $merchant = Merchant::findOrFail($merchantId);
         $months   = $request->plan_type === 'yearly' ? 12 : 1;
+
+        $amount = $request->filled('amount')
+            ? $request->amount
+            : ($request->plan_type === 'yearly' ? AppSetting::priceYearly() : AppSetting::priceMonthly());
 
         // Jika masih aktif, perpanjang dari tanggal berakhir. Jika expired, dari sekarang.
         $base   = ($merchant->subscription_ends_at && $merchant->subscription_ends_at->isFuture())
@@ -105,7 +123,7 @@ class SubscriptionController extends Controller
             'subscription_ends_at' => $endsAt,
             'plan_type'            => $request->plan_type,
             'last_payment_at'      => now(),
-            'last_payment_amount'  => $request->amount,
+            'last_payment_amount'  => $amount,
         ]);
 
         return response()->json([
@@ -131,14 +149,15 @@ class SubscriptionController extends Controller
     public function resetTrial(Request $request, $merchantId)
     {
         $merchant = Merchant::findOrFail($merchantId);
+        $days = AppSetting::trialDays();
         $merchant->update([
             'subscription_status' => 'trial',
-            'trial_ends_at'       => now()->addDays(7),
+            'trial_ends_at'       => now()->addDays($days),
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Trial direset 7 hari dari sekarang',
+            'message' => "Trial direset {$days} hari dari sekarang",
             'subscription' => $merchant->subscriptionInfo(),
         ]);
     }

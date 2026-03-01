@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\StockOpnameController;
 use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\RegistrationController;
 use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\AppSettingController;
 use App\Http\Controllers\DisplayController;
 
 /*
@@ -29,6 +30,9 @@ use App\Http\Controllers\DisplayController;
 // Customer Display — polling JSON (tanpa auth, bisa diakses browser)
 Route::get('display/{branchId}', [DisplayController::class, 'poll'])
     ->where('branchId', '[0-9]+');
+
+// Public settings (harga langganan — untuk Flutter layar expired)
+Route::get('settings/public', [AppSettingController::class, 'public']);
 
 // Public routes
 Route::prefix('auth')->group(function () {
@@ -140,6 +144,12 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     }); // end middleware('subscription')
+
+    // Super Admin — kelola app settings (harga, trial days, support contact)
+    Route::middleware('super_admin')->prefix('settings')->group(function () {
+        Route::get('/', [AppSettingController::class, 'index']);
+        Route::put('/', [AppSettingController::class, 'update']);
+    });
 
     // Super Admin — kelola subscription merchant
     Route::middleware('super_admin')->prefix('subscriptions')->group(function () {

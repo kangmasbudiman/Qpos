@@ -103,18 +103,37 @@ class AuthController extends GetxController {
       case LoginResult.needBranchSelection:
         // Cashier tidak boleh pilih cabang — langsung ke dashboard
         if (_authService.currentUser?.isCashier == true) {
-          Get.offAllNamed('/dashboard');
+          _navigateAfterLogin();
         } else {
           Get.offAllNamed('/branch-selection');
         }
         break;
       case LoginResult.success:
-        final isSuperAdmin = _authService.currentUser?.isSuperAdmin == true;
-        Get.offAllNamed(isSuperAdmin ? '/super-admin' : '/dashboard');
+        _navigateAfterLogin();
         break;
       case LoginResult.failed:
         break;
     }
+  }
+
+  /// Navigasi setelah login berhasil — cek subscription dulu
+  void _navigateAfterLogin() {
+    final user = _authService.currentUser;
+
+    // Super admin → panel khusus (tidak perlu cek subscription)
+    if (user?.isSuperAdmin == true) {
+      Get.offAllNamed('/super-admin');
+      return;
+    }
+
+    // Cek subscription — expired/suspended → halaman terkunci
+    final sub = _authService.subscription;
+    if (sub != null && !sub.canAccess) {
+      Get.offAllNamed('/subscription-expired');
+      return;
+    }
+
+    Get.offAllNamed('/dashboard');
   }
 
   // ─────────────────────────────────────────────
@@ -140,7 +159,7 @@ class AuthController extends GetxController {
 
   Future<void> handleSelectBranch(Branch branch) async {
     await _authService.selectBranch(branch);
-    Get.offAllNamed('/dashboard');
+    _navigateAfterLogin();
   }
 
   // ─────────────────────────────────────────────

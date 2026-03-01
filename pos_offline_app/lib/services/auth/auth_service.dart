@@ -10,6 +10,7 @@ import '../../core/utils/connectivity_utils.dart';
 import '../../data/models/user_model.dart';
 import '../../data/models/branch_model.dart';
 import '../../data/models/subscription_model.dart';
+import '../../data/models/app_pricing_model.dart';
 import '../database/database_helper.dart';
 import '../category/category_service.dart' show CategoryService;
 import '../inventory/inventory_service.dart' show InventoryService;
@@ -25,6 +26,7 @@ class AuthService extends GetxService {
   final RxList<Branch> _branches           = <Branch>[].obs;
   final Rxn<Branch> _selectedBranch        = Rxn<Branch>();
   final Rxn<SubscriptionInfo> _subscription = Rxn<SubscriptionInfo>();
+  final Rx<AppPricing> _pricing = AppPricing.defaultPricing.obs;
   // null = lihat semua cabang (khusus owner), non-null = cabang tertentu
   final Rxn<int> viewBranchId              = Rxn<int>();
 
@@ -35,6 +37,7 @@ class AuthService extends GetxService {
   List<Branch>      get branches       => _branches;
   Branch?           get selectedBranch => _selectedBranch.value;
   SubscriptionInfo? get subscription   => _subscription.value;
+  AppPricing        get pricing        => _pricing.value;
 
   /// true jika owner sedang mode lihat semua cabang
   bool get isViewingAllBranches =>
@@ -65,6 +68,7 @@ class AuthService extends GetxService {
   static const _keyCachedEmail    = 'cached_email';
   static const _keyCachedPwHash   = 'cached_password_hash';
   static const _keySubscription   = 'cached_subscription';
+  static const _keyPricing        = 'cached_pricing';
 
   @override
   void onInit() {
@@ -102,6 +106,12 @@ class AuthService extends GetxService {
           _subscription.value = SubscriptionInfo.fromJson(jsonDecode(subJson));
         }
 
+        // Load cached pricing
+        final pricingJson = await _storage.read(key: _keyPricing);
+        if (pricingJson != null) {
+          _pricing.value = AppPricing.fromJson(jsonDecode(pricingJson));
+        }
+
         // Verify token jika online
         if (await ConnectivityUtils.hasInternetConnection()) {
           await _verifyTokenOnline();
@@ -125,10 +135,15 @@ class AuthService extends GetxService {
       ).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (data['success'] == true && data['subscription'] != null) {
-          final sub = SubscriptionInfo.fromJson(data['subscription']);
-          _subscription.value = sub;
-          await _storage.write(key: _keySubscription, value: jsonEncode(data['subscription']));
+        if (data['success'] == true) {
+          if (data['subscription'] != null) {
+            _subscription.value = SubscriptionInfo.fromJson(data['subscription']);
+            await _storage.write(key: _keySubscription, value: jsonEncode(data['subscription']));
+          }
+          if (data['pricing'] != null) {
+            _pricing.value = AppPricing.fromJson(data['pricing'] as Map<String, dynamic>);
+            await _storage.write(key: _keyPricing, value: jsonEncode(data['pricing']));
+          }
         }
       }
     } catch (e) {
@@ -327,6 +342,12 @@ class AuthService extends GetxService {
         _subscription.value = SubscriptionInfo.fromJson(subData);
         await _storage.write(key: _keySubscription, value: jsonEncode(subData));
       }
+      // Parse pricing info
+      final pricingData = data['data']['pricing'] as Map<String, dynamic>?;
+      if (pricingData != null) {
+        _pricing.value = AppPricing.fromJson(pricingData);
+        await _storage.write(key: _keyPricing, value: jsonEncode(pricingData));
+      }
 
       _authToken.value   = token;
       _currentUser.value = user;
@@ -357,8 +378,11 @@ class AuthService extends GetxService {
         }
       }
 
-      // Download master data
-      await _downloadMasterData(token);
+      // Download master data hanya jika subscription masih aktif
+      final sub = _subscription.value;
+      if (sub == null || sub.canAccess) {
+        await _downloadMasterData(token);
+      }
 
       _isLoggedIn.value = true;
       initViewBranch();

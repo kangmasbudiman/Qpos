@@ -7,6 +7,55 @@ import '../auth/auth_service.dart';
 
 // ── Data Models ────────────────────────────────────────────────────────────
 
+/// Info subscription satu merchant (dari GET /subscriptions)
+class MerchantSubInfo {
+  final int    id;
+  final String name;
+  final String companyCode;
+  final String email;
+  final String? phone;
+  final String subStatus;   // trial | active | expired | suspended
+  final int    daysRemaining;
+  final String? trialEndsAt;
+  final String? subEndsAt;
+  final String? planType;
+  final bool   canAccess;
+  final String? approvedAt;
+
+  const MerchantSubInfo({
+    required this.id,
+    required this.name,
+    required this.companyCode,
+    required this.email,
+    this.phone,
+    required this.subStatus,
+    required this.daysRemaining,
+    this.trialEndsAt,
+    this.subEndsAt,
+    this.planType,
+    required this.canAccess,
+    this.approvedAt,
+  });
+
+  factory MerchantSubInfo.fromJson(Map<String, dynamic> json) {
+    final sub = json['subscription'] as Map<String, dynamic>? ?? {};
+    return MerchantSubInfo(
+      id:            (json['id'] as num).toInt(),
+      name:          json['name'] as String? ?? '',
+      companyCode:   json['company_code'] as String? ?? '',
+      email:         json['email'] as String? ?? '',
+      phone:         json['phone'] as String?,
+      subStatus:     sub['status'] as String? ?? 'expired',
+      daysRemaining: (sub['days_remaining'] as num?)?.toInt() ?? 0,
+      trialEndsAt:   sub['trial_ends_at'] as String?,
+      subEndsAt:     sub['sub_ends_at'] as String?,
+      planType:      sub['plan_type'] as String?,
+      canAccess:     sub['can_access'] as bool? ?? false,
+      approvedAt:    json['approved_at'] as String?,
+    );
+  }
+}
+
 class RegistrationStats {
   final int total;
   final int pending;
@@ -188,5 +237,102 @@ class RegistrationService extends GetxService {
       return (data['data'] as Map<String, dynamic>)['email_to'] as String? ?? '';
     }
     throw Exception(data['message'] ?? 'Gagal mengirim ulang kode');
+  }
+
+  // ── Subscription Management (Super Admin) ─────────────────────────────────
+
+  /// GET /subscriptions — list semua merchant + status subscription
+  Future<List<MerchantSubInfo>> fetchMerchantSubscriptions() async {
+    final response = await http.get(
+      Uri.parse('${AppConstants.baseUrl}/subscriptions'),
+      headers: _headers,
+    ).timeout(const Duration(seconds: 15));
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode == 200 && data['success'] == true) {
+      final list = data['data'] as List;
+      return list.map((e) => MerchantSubInfo.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    throw Exception(data['message'] ?? 'Gagal memuat data subscription');
+  }
+
+  /// POST /subscriptions/{id}/activate — aktifkan langganan berbayar
+  Future<void> activateSubscription(int merchantId, String planType, double amount) async {
+    final response = await http.post(
+      Uri.parse('${AppConstants.baseUrl}/subscriptions/$merchantId/activate'),
+      headers: _headers,
+      body: jsonEncode({'plan_type': planType, 'amount': amount}),
+    ).timeout(const Duration(seconds: 15));
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode == 200 && data['success'] == true) return;
+    throw Exception(data['message'] ?? 'Gagal mengaktifkan langganan');
+  }
+
+  /// POST /subscriptions/{id}/extend — perpanjang langganan
+  Future<void> extendSubscription(int merchantId, String planType, double amount) async {
+    final response = await http.post(
+      Uri.parse('${AppConstants.baseUrl}/subscriptions/$merchantId/extend'),
+      headers: _headers,
+      body: jsonEncode({'plan_type': planType, 'amount': amount}),
+    ).timeout(const Duration(seconds: 15));
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode == 200 && data['success'] == true) return;
+    throw Exception(data['message'] ?? 'Gagal memperpanjang langganan');
+  }
+
+  /// POST /subscriptions/{id}/suspend — suspend merchant
+  Future<void> suspendMerchant(int merchantId) async {
+    final response = await http.post(
+      Uri.parse('${AppConstants.baseUrl}/subscriptions/$merchantId/suspend'),
+      headers: _headers,
+    ).timeout(const Duration(seconds: 15));
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode == 200 && data['success'] == true) return;
+    throw Exception(data['message'] ?? 'Gagal men-suspend merchant');
+  }
+
+  /// POST /subscriptions/{id}/reset-trial — reset trial 7 hari
+  Future<void> resetTrial(int merchantId) async {
+    final response = await http.post(
+      Uri.parse('${AppConstants.baseUrl}/subscriptions/$merchantId/reset-trial'),
+      headers: _headers,
+    ).timeout(const Duration(seconds: 15));
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode == 200 && data['success'] == true) return;
+    throw Exception(data['message'] ?? 'Gagal mereset trial');
+  }
+
+  // ── App Settings (Super Admin) ────────────────────────────────────────────
+
+  /// GET /settings — ambil semua settings
+  Future<Map<String, String>> fetchSettings() async {
+    final response = await http.get(
+      Uri.parse('${AppConstants.baseUrl}/settings'),
+      headers: _headers,
+    ).timeout(const Duration(seconds: 15));
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode == 200 && data['success'] == true) {
+      final list = data['data'] as List;
+      return { for (final item in list) item['key'] as String : item['value'] as String? ?? '' };
+    }
+    throw Exception(data['message'] ?? 'Gagal memuat pengaturan');
+  }
+
+  /// PUT /settings — simpan settings
+  Future<void> saveSettings(Map<String, dynamic> settings) async {
+    final response = await http.put(
+      Uri.parse('${AppConstants.baseUrl}/settings'),
+      headers: _headers,
+      body: jsonEncode({'settings': settings}),
+    ).timeout(const Duration(seconds: 15));
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode == 200 && data['success'] == true) return;
+    throw Exception(data['message'] ?? 'Gagal menyimpan pengaturan');
   }
 }

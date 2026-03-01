@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppSetting;
 use App\Models\User;
 use App\Models\Merchant;
 use Illuminate\Http\Request;
@@ -302,6 +303,13 @@ class AuthController extends Controller
                     'business_type'=> $merchant->business_type,
                 ],
                 'subscription' => $merchant->subscriptionInfo(),
+                'pricing'     => [
+                    'price_monthly'    => AppSetting::priceMonthly(),
+                    'price_yearly'     => AppSetting::priceYearly(),
+                    'trial_days'       => AppSetting::trialDays(),
+                    'support_email'    => AppSetting::get('support_email', 'support@payzen.id'),
+                    'support_whatsapp' => AppSetting::get('support_whatsapp', ''),
+                ],
                 'branches'   => $branches,
                 'token'      => $token,
                 'token_type' => 'Bearer',
