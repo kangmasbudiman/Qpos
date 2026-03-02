@@ -92,6 +92,9 @@ dependencies:
   # Barcode Scanner (kamera HP)
   mobile_scanner: ^6.0.0
 
+  # URL Launcher (untuk buka WhatsApp dari halaman subscription)
+  url_launcher: ^6.2.6
+
   # Note: Bluetooth thermal printer packages not yet compatible with AGP 8.7+
   # Print receipt via PDF (using 'printing' package already included)
 
