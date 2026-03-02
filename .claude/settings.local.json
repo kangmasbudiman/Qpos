@@ -32,7 +32,8 @@
       "Bash(FLUTTER_NO_IOS=true flutter pub get:*)",
       "Bash(GIT_PAGER='' /usr/bin/git -C /Users/admin/development/latihanAI/pos-backend status)",
       "Bash(SDKROOT='' /usr/bin/git -C /Users/admin/development/latihanAI/pos-backend status:*)",
-      "Bash(XCODE_DEVELOPER_DIR=/ /usr/bin/git -C /Users/admin/development/latihanAI/pos-backend status:*)"
+      "Bash(XCODE_DEVELOPER_DIR=/ /usr/bin/git -C /Users/admin/development/latihanAI/pos-backend status:*)",
+      "Bash(1:*)"
     ]
   }
 }
