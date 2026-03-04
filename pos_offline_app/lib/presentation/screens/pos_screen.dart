@@ -113,7 +113,16 @@ class _POSScreenState extends State<POSScreen> {
             const SizedBox(height: 16),
 
             // ── Logo ──
-            const PayzenLogo.icon(size: 44, ringColor: Colors.white),
+            Container(
+              width: 52,
+              height: 52,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              padding: const EdgeInsets.all(6),
+              child: const PayzenLogo.icon(size: 40),
+            ),
             const SizedBox(height: 12),
             Container(
               height: 1,

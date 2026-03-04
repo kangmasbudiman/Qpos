@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -45,6 +46,13 @@ class ThermalPrinterService extends GetxService {
         'qris': 'QRIS',
       };
 
+      // Load logo Payzen dari assets
+      pw.MemoryImage? logoImage;
+      try {
+        final ByteData data = await rootBundle.load('assets/animations/payzen.png');
+        logoImage = pw.MemoryImage(data.buffer.asUint8List());
+      } catch (_) {}
+
       final pdf = pw.Document();
 
       pdf.addPage(pw.Page(
@@ -53,6 +61,14 @@ class ThermalPrinterService extends GetxService {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
+              // Logo Payzen
+              if (logoImage != null) ...[
+                pw.Center(
+                  child: pw.Image(logoImage, width: 50, height: 50, fit: pw.BoxFit.contain),
+                ),
+                pw.SizedBox(height: 4),
+              ],
+
               // Nama toko
               pw.Center(
                 child: pw.Text(storeName.toUpperCase(),

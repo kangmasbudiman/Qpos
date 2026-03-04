@@ -37,6 +37,7 @@ class AuthService extends GetxService {
   List<Branch>      get branches       => _branches;
   Branch?           get selectedBranch => _selectedBranch.value;
   SubscriptionInfo? get subscription   => _subscription.value;
+  Rxn<SubscriptionInfo> get subscriptionRx => _subscription;
   AppPricing        get pricing        => _pricing.value;
 
   /// true jika owner sedang mode lihat semua cabang

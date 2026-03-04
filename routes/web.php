@@ -10,3 +10,8 @@ Route::get('/', function () {
 // Customer Display — tanpa auth, akses publik via browser
 Route::get('/display/{branchId}', [DisplayController::class, 'show'])
     ->where('branchId', '[0-9]+');
+
+// Kebijakan Privasi — publik
+Route::get('/privacy-policy', function () {
+    return view('privacy_policy');
+});

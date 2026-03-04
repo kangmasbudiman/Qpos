@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import '../../../data/models/app_pricing_model.dart';
 import '../../../services/registration/registration_service.dart';
 import '../../../services/auth/auth_service.dart';
 import '../../controllers/auth_controller.dart';
@@ -38,6 +39,10 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
   final _supportWaCtrl            = TextEditingController();
   final _settingsSaving           = false.obs;
   final _settingsLoaded           = false.obs;
+
+  // Pricing live dari server (dipakai di bottom sheet kelola merchant)
+  late final Rx<AppPricing> _livePricing =
+      Get.find<AuthService>().pricing.obs;
 
   static const _dark   = Color(0xFF1E2235);
   static const _darker = Color(0xFF2D3154);
@@ -251,26 +256,37 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
   // ── Quick Action Buttons ─────────────────────────────────────────────────
 
   Widget _buildQuickActions() {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: _ActionBtn(
-            icon:  Icons.pending_actions_rounded,
-            label: 'Lihat Pending',
-            color: const Color(0xFFFF9800),
-            onTap: () => Get.toNamed('/registrations',
-                arguments: {'initialTab': 'pending'}),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: _ActionBtn(
+                icon:  Icons.pending_actions_rounded,
+                label: 'Lihat Pending',
+                color: const Color(0xFFFF9800),
+                onTap: () => Get.toNamed('/registrations',
+                    arguments: {'initialTab': 'pending'}),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _ActionBtn(
+                icon:  Icons.list_alt_rounded,
+                label: 'Semua Daftar',
+                color: const Color(0xFF2196F3),
+                onTap: () => Get.toNamed('/registrations',
+                    arguments: {'initialTab': 'all'}),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _ActionBtn(
-            icon:  Icons.list_alt_rounded,
-            label: 'Semua Daftar',
-            color: const Color(0xFF2196F3),
-            onTap: () => Get.toNamed('/registrations',
-                arguments: {'initialTab': 'all'}),
-          ),
+        const SizedBox(height: 10),
+        _ActionBtn(
+          icon:  Icons.store_rounded,
+          label: 'Daftar Merchant & Langganan',
+          color: const Color(0xFF4CAF50),
+          onTap: () => Get.toNamed('/merchants'),
         ),
       ],
     );
@@ -388,20 +404,50 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
     _supportEmailCtrl.text         = s['support_email']          ?? 'support@payzen.id';
     _supportWaCtrl.text            = s['support_whatsapp']       ?? '';
     _settingsLoaded.value          = true;
+
+    // Update live pricing dari data server
+    _livePricing.value = AppPricing(
+      priceMonthly:         int.tryParse(s['price_starter_monthly']  ?? '') ?? 99000,
+      priceYearly:          int.tryParse(s['price_starter_yearly']   ?? '') ?? 990000,
+      priceStarterMonthly:  int.tryParse(s['price_starter_monthly']  ?? '') ?? 99000,
+      priceStarterYearly:   int.tryParse(s['price_starter_yearly']   ?? '') ?? 990000,
+      priceBusinessMonthly: int.tryParse(s['price_business_monthly'] ?? '') ?? 199000,
+      priceBusinessYearly:  int.tryParse(s['price_business_yearly']  ?? '') ?? 1990000,
+      trialDays:            int.tryParse(s['trial_days']             ?? '') ?? 7,
+      supportEmail:         s['support_email']    ?? 'support@payzen.id',
+      supportWhatsapp:      s['support_whatsapp'] ?? '',
+    );
   }
 
   Future<void> _saveSettings() async {
     _settingsSaving.value = true;
+    final sm  = int.tryParse(_priceStarterMonthlyCtrl.text.replaceAll('.', ''))  ?? 99000;
+    final sy  = int.tryParse(_priceStarterYearlyCtrl.text.replaceAll('.', ''))   ?? 990000;
+    final bm  = int.tryParse(_priceBusinessMonthlyCtrl.text.replaceAll('.', '')) ?? 199000;
+    final by  = int.tryParse(_priceBusinessYearlyCtrl.text.replaceAll('.', ''))  ?? 1990000;
+    final td  = int.tryParse(_trialDaysCtrl.text) ?? 7;
     try {
       await _regService.saveSettings({
-        'price_starter_monthly':  int.tryParse(_priceStarterMonthlyCtrl.text.replaceAll('.', ''))  ?? 99000,
-        'price_starter_yearly':   int.tryParse(_priceStarterYearlyCtrl.text.replaceAll('.', ''))   ?? 990000,
-        'price_business_monthly': int.tryParse(_priceBusinessMonthlyCtrl.text.replaceAll('.', '')) ?? 199000,
-        'price_business_yearly':  int.tryParse(_priceBusinessYearlyCtrl.text.replaceAll('.', ''))  ?? 1990000,
-        'trial_days':       int.tryParse(_trialDaysCtrl.text) ?? 7,
-        'support_email':    _supportEmailCtrl.text.trim(),
-        'support_whatsapp': _supportWaCtrl.text.trim(),
+        'price_starter_monthly':  sm,
+        'price_starter_yearly':   sy,
+        'price_business_monthly': bm,
+        'price_business_yearly':  by,
+        'trial_days':             td,
+        'support_email':          _supportEmailCtrl.text.trim(),
+        'support_whatsapp':       _supportWaCtrl.text.trim(),
       });
+      // Update live pricing langsung setelah simpan berhasil
+      _livePricing.value = AppPricing(
+        priceMonthly:         sm,
+        priceYearly:          sy,
+        priceStarterMonthly:  sm,
+        priceStarterYearly:   sy,
+        priceBusinessMonthly: bm,
+        priceBusinessYearly:  by,
+        trialDays:            td,
+        supportEmail:         _supportEmailCtrl.text.trim(),
+        supportWhatsapp:      _supportWaCtrl.text.trim(),
+      );
       Get.snackbar('Berhasil', 'Pengaturan berhasil disimpan',
           backgroundColor: Colors.green[600],
           colorText: Colors.white,
@@ -794,163 +840,220 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
 
   void _showSubActions(MerchantSubInfo m) {
     final selectedTier = (m.subscriptionTier ?? 'starter').obs;
+    final pricing      = _livePricing.value; // selalu dari data server terbaru
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color:        Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle
-            Center(
-              child: Container(
-                width: 36, height: 4,
-                decoration: BoxDecoration(
-                  color:        Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.75,
+        minChildSize: 0.5,
+        maxChildSize: 0.92,
+        expand: false,
+        builder: (ctx, scrollCtrl) => Container(
+          decoration: const BoxDecoration(
+            color:        Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: ListView(
+            controller: scrollCtrl,
+            padding: EdgeInsets.fromLTRB(20, 12, 20,
+                MediaQuery.of(context).viewInsets.bottom + 28),
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  width: 36, height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            // Merchant name
-            Text(m.name,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-            Text(m.email,
-                style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-            const SizedBox(height: 4),
-            _SubStatusRow(status: m.subStatus, expiryText: _subExpiryText(m),
-                daysRemaining: m.daysRemaining),
-            const SizedBox(height: 12),
+              const SizedBox(height: 14),
 
-            // Tier picker
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4F5F7),
-                borderRadius: BorderRadius.circular(10),
+              // Header merchant
+              Row(children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: _subStatusColor(m.subStatus).withValues(alpha: 0.12),
+                  child: Text(
+                    m.name.isNotEmpty ? m.name[0].toUpperCase() : '?',
+                    style: TextStyle(
+                      color: _subStatusColor(m.subStatus),
+                      fontWeight: FontWeight.bold, fontSize: 17,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(m.name,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                    Text(m.email,
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                  ],
+                )),
+              ]),
+              const SizedBox(height: 8),
+              _SubStatusRow(
+                status: m.subStatus,
+                expiryText: _subExpiryText(m),
+                daysRemaining: m.daysRemaining,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Tier Langganan',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF1A1D2E))),
-                  const SizedBox(height: 8),
-                  Obx(() => Row(
-                    children: [
+              const SizedBox(height: 14),
+
+              // ── Tier picker ─────────────────────────────────────────────
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F5F7),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Pilih Tier Langganan',
+                        style: TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A1D2E),
+                        )),
+                    const SizedBox(height: 8),
+                    Obx(() => Row(children: [
                       Expanded(child: _TierPickerBtn(
-                        label: 'Starter',
-                        subtitle: 'Rp 99.000/bln',
+                        label:    'Starter',
+                        subtitle: '${pricing.formattedStarterMonthly}/bln',
                         selected: selectedTier.value == 'starter',
-                        onTap: () => selectedTier.value = 'starter',
+                        onTap:    () => selectedTier.value = 'starter',
                       )),
                       const SizedBox(width: 8),
                       Expanded(child: _TierPickerBtn(
-                        label: 'Business',
-                        subtitle: 'Rp 199.000/bln',
-                        selected: selectedTier.value == 'business',
-                        onTap: () => selectedTier.value = 'business',
+                        label:     'Business',
+                        subtitle:  '${pricing.formattedBusinessMonthly}/bln',
+                        selected:  selectedTier.value == 'business',
+                        onTap:     () => selectedTier.value = 'business',
                         highlight: true,
                       )),
-                    ],
-                  )),
-                ],
+                    ])),
+                  ],
+                ),
               ),
-            ),
 
-            const SizedBox(height: 12),
-            const Divider(),
-            const SizedBox(height: 8),
-            // Action buttons — harga dari setting
-            Obx(() {
-              final pricing = Get.find<AuthService>().pricing;
-              final tier    = selectedTier.value;
-              final isBusinessTier = tier == 'business';
-              final monthlyPrice   = isBusinessTier ? pricing.priceBusinessMonthly  : pricing.priceStarterMonthly;
-              final yearlyPrice    = isBusinessTier ? pricing.priceBusinessYearly   : pricing.priceStarterYearly;
-              final fmtMonthly     = isBusinessTier ? pricing.formattedBusinessMonthly : pricing.formattedStarterMonthly;
-              final fmtYearly      = isBusinessTier ? pricing.formattedBusinessYearly  : pricing.formattedStarterYearly;
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (m.subStatus != 'active') ...[
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 6),
+
+              // ── Action buttons ──────────────────────────────────────────
+              Obx(() {
+                final tier           = selectedTier.value;
+                final isBiz          = tier == 'business';
+                final monthlyPrice   = isBiz ? pricing.priceBusinessMonthly  : pricing.priceStarterMonthly;
+                final yearlyPrice    = isBiz ? pricing.priceBusinessYearly   : pricing.priceStarterYearly;
+                final fmtMonthly     = isBiz ? pricing.formattedBusinessMonthly : pricing.formattedStarterMonthly;
+                final fmtYearly      = isBiz ? pricing.formattedBusinessYearly  : pricing.formattedStarterYearly;
+
+                // Label aksi: expired/suspended/trial → "Aktifkan", active → "Perpanjang"
+                final isActive = m.subStatus == 'active';
+                final actionLabel = isActive ? 'Perpanjang' : 'Aktifkan';
+                final actionIcon  = isActive ? Icons.autorenew_rounded : Icons.check_circle_rounded;
+                final actionColor = isActive ? Colors.blue : Colors.green;
+
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Text(
+                        '$actionLabel Langganan',
+                        style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A1D2E),
+                        ),
+                      ),
+                    ),
                     _SubActionTile(
-                      icon:  Icons.check_circle_rounded,
-                      color: Colors.green,
-                      label: 'Aktifkan Bulanan ($fmtMonthly)',
+                      icon:  actionIcon,
+                      color: actionColor,
+                      label: '$actionLabel Bulanan ($fmtMonthly)',
                       onTap: () async {
                         Get.back();
-                        await _doSubscriptionAction(() => _regService.activateSubscription(
-                            m.id, 'monthly', monthlyPrice.toDouble(), tier: tier));
+                        await _doSubscriptionAction(() => isActive
+                            ? _regService.extendSubscription(m.id, 'monthly', monthlyPrice.toDouble(), tier: tier)
+                            : _regService.activateSubscription(m.id, 'monthly', monthlyPrice.toDouble(), tier: tier));
                       },
                     ),
                     _SubActionTile(
                       icon:  Icons.workspace_premium_rounded,
                       color: Colors.indigo,
-                      label: 'Aktifkan Tahunan ($fmtYearly)',
+                      label: '$actionLabel Tahunan ($fmtYearly)',
                       onTap: () async {
                         Get.back();
-                        await _doSubscriptionAction(() => _regService.activateSubscription(
-                            m.id, 'yearly', yearlyPrice.toDouble(), tier: tier));
+                        await _doSubscriptionAction(() => isActive
+                            ? _regService.extendSubscription(m.id, 'yearly', yearlyPrice.toDouble(), tier: tier)
+                            : _regService.activateSubscription(m.id, 'yearly', yearlyPrice.toDouble(), tier: tier));
                       },
                     ),
                   ],
-                  if (m.subStatus == 'active') ...[
-                    _SubActionTile(
-                      icon:  Icons.autorenew_rounded,
-                      color: Colors.blue,
-                      label: 'Perpanjang Bulanan ($fmtMonthly)',
-                      onTap: () async {
-                        Get.back();
-                        await _doSubscriptionAction(() => _regService.extendSubscription(
-                            m.id, 'monthly', monthlyPrice.toDouble(), tier: tier));
-                      },
-                    ),
-                    _SubActionTile(
-                      icon:  Icons.star_rounded,
-                      color: Colors.indigo,
-                      label: 'Perpanjang Tahunan ($fmtYearly)',
-                      onTap: () async {
-                        Get.back();
-                        await _doSubscriptionAction(() => _regService.extendSubscription(
-                            m.id, 'yearly', yearlyPrice.toDouble(), tier: tier));
-                      },
-                    ),
-                  ],
-                ],
-              );
-            }),
-            _SubActionTile(
-              icon:  Icons.replay_rounded,
-              color: Colors.orange,
-              label: 'Reset Trial 7 Hari',
-              onTap: () async {
-                Get.back();
-                await _doSubscriptionAction(() => _regService.resetTrial(m.id));
-              },
-            ),
-            if (m.subStatus != 'suspended')
+                );
+              }),
+
+              const SizedBox(height: 4),
+              const Divider(),
+              const SizedBox(height: 6),
+
+              // ── Aksi lain ───────────────────────────────────────────────
+              const Text('Aksi Lainnya',
+                  style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A1D2E),
+                  )),
+              const SizedBox(height: 4),
               _SubActionTile(
-                icon:  Icons.block_rounded,
-                color: Colors.red,
-                label: 'Suspend Akun',
+                icon:  Icons.replay_rounded,
+                color: Colors.orange,
+                label: 'Reset Trial (${_auth7Days()} Hari)',
                 onTap: () async {
                   Get.back();
-                  await _doSubscriptionAction(() => _regService.suspendMerchant(m.id));
+                  await _doSubscriptionAction(() => _regService.resetTrial(m.id));
                 },
               ),
-          ],
+              if (m.subStatus == 'suspended')
+                _SubActionTile(
+                  icon:  Icons.lock_open_rounded,
+                  color: Colors.green,
+                  label: 'Aktifkan Kembali (Cabut Suspend)',
+                  onTap: () async {
+                    Get.back();
+                    // Aktifkan bulanan dengan tier saat ini
+                    final tier  = selectedTier.value;
+                    final isBiz = tier == 'business';
+                    final price = isBiz ? pricing.priceBusinessMonthly : pricing.priceStarterMonthly;
+                    await _doSubscriptionAction(() =>
+                        _regService.activateSubscription(m.id, 'monthly', price.toDouble(), tier: tier));
+                  },
+                ),
+              if (m.subStatus != 'suspended')
+                _SubActionTile(
+                  icon:  Icons.block_rounded,
+                  color: Colors.red,
+                  label: 'Suspend Akun',
+                  onTap: () async {
+                    Get.back();
+                    await _doSubscriptionAction(() => _regService.suspendMerchant(m.id));
+                  },
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  /// Ambil trial days dari live pricing, fallback 7
+  int _auth7Days() => _livePricing.value.trialDays;
 
   Future<void> _doSubscriptionAction(Future<void> Function() action) async {
     try {

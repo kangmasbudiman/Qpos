@@ -206,30 +206,19 @@ class _DashboardScreenNewState extends State<DashboardScreenNew> {
       child: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 20),
-            // Logo dengan efek glow
+            const SizedBox(height: 16),
+            // Logo Payzen
             Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFFFF6B35), Color(0xFFFF8C42)],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFFF6B35).withValues(alpha: 0.5),
-                    blurRadius: 15,
-                    spreadRadius: 2,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+              width: 52,
+              height: 52,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
               ),
-              child: const PayzenLogo.icon(size: 30, ringColor: Colors.white),
+              padding: const EdgeInsets.all(6),
+              child: const PayzenLogo.icon(size: 40),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             const Text(
               'PAYZEN',
               style: TextStyle(
@@ -656,6 +645,113 @@ class _DashboardScreenNewState extends State<DashboardScreenNew> {
                       ),
                     ],
                   ),
+                  // Subscription tier + masa berlaku
+                  const SizedBox(height: 8),
+                  Obx(() {
+                    final authService = Get.find<AuthService>();
+                    final sub = authService.subscriptionRx.value;
+                    if (sub == null) return const SizedBox.shrink();
+
+                    // Tier badge
+                    final tier = sub.tier;
+                    final tierLabel = tier == 'business' ? 'Business' : 'Starter';
+                    final tierColor = tier == 'business'
+                        ? const Color(0xFF9C27B0)
+                        : const Color(0xFF2196F3);
+
+                    // Masa berlaku text
+                    String masaLabel;
+                    Color masaColor;
+                    IconData masaIcon;
+
+                    if (sub.status == 'trial') {
+                      final days = sub.daysRemaining;
+                      masaLabel = 'Trial: $days hr lagi';
+                      masaColor = days <= 3
+                          ? const Color(0xFFE53935)
+                          : const Color(0xFF43A047);
+                      masaIcon = Icons.hourglass_bottom_rounded;
+                    } else if (sub.status == 'active') {
+                      final endStr = sub.subEndsAt;
+                      final days = sub.daysRemaining;
+                      if (endStr != null) {
+                        final endDate = DateTime.tryParse(endStr);
+                        masaLabel = days <= 7
+                            ? 'Aktif: $days hr lagi'
+                            : 'Aktif s/d ${endDate != null ? DateFormat('dd MMM yy', 'id_ID').format(endDate) : endStr}';
+                        masaColor = days <= 7
+                            ? const Color(0xFFE53935)
+                            : const Color(0xFF43A047);
+                      } else {
+                        masaLabel = 'Aktif';
+                        masaColor = const Color(0xFF43A047);
+                      }
+                      masaIcon = Icons.verified_rounded;
+                    } else if (sub.status == 'expired') {
+                      masaLabel = 'Expired';
+                      masaColor = const Color(0xFFE53935);
+                      masaIcon = Icons.cancel_rounded;
+                    } else if (sub.status == 'suspended') {
+                      masaLabel = 'Suspended';
+                      masaColor = const Color(0xFFFF9800);
+                      masaIcon = Icons.block_rounded;
+                    } else {
+                      return const SizedBox.shrink();
+                    }
+
+                    return Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: tierColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: tierColor.withValues(alpha: 0.4)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.workspace_premium_rounded, size: 11, color: tierColor),
+                              const SizedBox(width: 4),
+                              Text(
+                                tierLabel,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: tierColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: masaColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: masaColor.withValues(alpha: 0.35)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(masaIcon, size: 11, color: masaColor),
+                              const SizedBox(width: 4),
+                              Text(
+                                masaLabel,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: masaColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
                   // Shortcut kelola cabang (owner only)
                   if (user?.isOwner == true) ...[
                     const SizedBox(height: 8),

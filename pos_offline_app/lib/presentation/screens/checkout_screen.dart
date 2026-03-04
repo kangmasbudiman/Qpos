@@ -1702,10 +1702,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       ),
       child: Obx(() {
         final isProcessing = _controller.isProcessingTransaction;
-        final canPay = _controller.canProcessPayment;
         final hasPaymentEntries = _controller.paymentEntries.isNotEmpty;
         final loyaltyDiscount = _redeemDiscount.value;
         final effectiveTotal = (_controller.totalAmount - loyaltyDiscount).clamp(0.0, double.infinity);
+
+        // Starter tier: tidak ada multi-payment, cukup pilih metode → bayar penuh
+        final sub = Get.find<AuthService>().subscription;
+        final hasMultiPayment = sub?.hasFeature('multi_payment') ?? true;
+        final isStarterSinglePay = !hasMultiPayment && !hasPaymentEntries;
+        final canPay = isStarterSinglePay ? true : _controller.canProcessPayment;
+
         String btnLabel;
         if (!canPay) {
           btnLabel = hasPaymentEntries
@@ -2067,6 +2073,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
 
     if (confirmed == true) {
+      // Starter tier: auto-set cashAmount = totalAmount sebelum proses
+      final sub = Get.find<AuthService>().subscription;
+      final hasMultiPayment = sub?.hasFeature('multi_payment') ?? true;
+      if (!hasMultiPayment && _controller.paymentEntries.isEmpty) {
+        _controller.updateCashAmount(_controller.totalAmount);
+      }
+
       final customer       = _controller.selectedCustomer;
       final redeemPts      = _redeemPoints.value;
       final redeemDisc     = _redeemDiscount.value;

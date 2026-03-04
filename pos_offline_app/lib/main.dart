@@ -13,6 +13,7 @@ import 'presentation/screens/super_admin_login_screen.dart';
 import 'presentation/screens/super_admin/super_admin_dashboard_screen.dart';
 import 'presentation/screens/super_admin/registration_list_screen.dart';
 import 'presentation/screens/super_admin/registration_detail_screen.dart';
+import 'presentation/screens/super_admin/merchant_list_screen.dart';
 import 'services/registration/registration_service.dart';
 import 'presentation/screens/branch_selection_screen.dart';
 import 'presentation/screens/dashboard_screen_new.dart';
@@ -166,6 +167,10 @@ class POSApp extends StatelessWidget {
                 transitionDuration: const Duration(milliseconds: 250)),
               GetPage(name: '/registrations/:id',
                 page: () => const RegistrationDetailScreen(),
+                transition: Transition.rightToLeft,
+                transitionDuration: const Duration(milliseconds: 250)),
+              GetPage(name: '/merchants',
+                page: () => const MerchantListScreen(),
                 transition: Transition.rightToLeft,
                 transitionDuration: const Duration(milliseconds: 250)),
               GetPage(name: '/branch-selection',
