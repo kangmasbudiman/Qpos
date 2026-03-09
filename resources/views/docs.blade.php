@@ -596,6 +596,9 @@
             <a href="#" onclick="showSection('quickstart')" id="nav-quickstart">
                 <span class="icon">⚡</span> Mulai Cepat
             </a>
+            <a href="#" onclick="showSection('register')" id="nav-register">
+                <span class="icon">📝</span> Cara Mendaftar
+            </a>
         </div>
 
         <div class="sidebar-section">
@@ -732,6 +735,13 @@
 
                 <h2>Navigasi Dokumentasi</h2>
                 <div class="quick-links">
+                    <a href="#" onclick="showSection('register')" class="quick-link">
+                        <div class="ql-icon">📝</div>
+                        <div class="ql-body">
+                            <h4>Cara Mendaftar</h4>
+                            <p>Registrasi & kode perusahaan</p>
+                        </div>
+                    </a>
                     <a href="#" onclick="showSection('quickstart')" class="quick-link">
                         <div class="ql-icon">⚡</div>
                         <div class="ql-body">
@@ -791,26 +801,31 @@
                     <p>Ikuti langkah-langkah berikut untuk mulai berjualan dengan Payzen POS.</p>
                 </div>
 
+                <div class="callout info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>Pendaftaran Payzen memerlukan <strong>persetujuan admin</strong>. Setelah disetujui, kode perusahaan akan dikirim ke email Anda. <a href="#" onclick="showSection('register')" style="color:#1e40af;font-weight:600;">Lihat panduan lengkap registrasi →</a></div>
+                </div>
+
                 <div class="steps">
                     <div class="step-card">
                         <div class="step-num">1</div>
                         <div class="step-body">
-                            <h4>Daftar Akun</h4>
-                            <p>Klik tombol <strong>Coba Gratis</strong> di halaman utama. Masukkan nama bisnis, email, dan password. Akun langsung aktif tanpa perlu verifikasi kartu kredit.</p>
+                            <h4>Daftar Akun di Aplikasi</h4>
+                            <p>Install aplikasi Payzen → ketuk <strong>Daftar</strong> → isi data diri & data usaha → kirim. Pendaftaran akan menunggu persetujuan admin (1×24 jam).</p>
                         </div>
                     </div>
                     <div class="step-card">
                         <div class="step-num">2</div>
                         <div class="step-body">
-                            <h4>Download & Install Aplikasi Android</h4>
-                            <p>Install file APK Payzen di perangkat Android (minimum Android 7.0). Izinkan instalasi dari sumber tidak dikenal jika diminta.</p>
+                            <h4>Cek Email — Terima Kode Perusahaan</h4>
+                            <p>Setelah disetujui, email masuk berisi <strong>Kode Perusahaan</strong> (8 karakter, contoh: <code>ABCD1234</code>). Simpan kode ini — dibutuhkan setiap login.</p>
                         </div>
                     </div>
                     <div class="step-card">
                         <div class="step-num">3</div>
                         <div class="step-body">
                             <h4>Login ke Aplikasi</h4>
-                            <p>Buka aplikasi, masukkan email dan password yang sudah didaftarkan. Aplikasi akan mengunduh data produk dan pengaturan bisnis Anda secara otomatis.</p>
+                            <p>Buka aplikasi → masukkan <strong>Kode Perusahaan</strong> → isi email & password → pilih cabang. Aplikasi mengunduh data produk dan pengaturan otomatis.</p>
                         </div>
                     </div>
                     <div class="step-card">
@@ -824,7 +839,7 @@
                         <div class="step-num">5</div>
                         <div class="step-body">
                             <h4>Buka Shift & Mulai Berjualan</h4>
-                            <p>Saat login pertama, aplikasi akan meminta Anda membuka shift kasir. Masukkan modal awal kas, lalu Anda siap bertransaksi!</p>
+                            <p>Saat login pertama, aplikasi meminta Anda membuka shift kasir. Masukkan modal awal kas, lalu Anda siap bertransaksi!</p>
                         </div>
                     </div>
                 </div>
@@ -832,6 +847,199 @@
                 <div class="callout tip">
                     <span class="callout-icon">💡</span>
                     <div><strong>Tips:</strong> Gunakan fitur import CSV untuk menambahkan banyak produk sekaligus. Unduh template CSV dari menu Produk → Import.</div>
+                </div>
+            </div>
+
+
+            <!-- ══════════════════════════════════════ -->
+            <!-- SECTION: REGISTER -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="doc-section" id="section-register">
+                <div class="breadcrumb">
+                    <a href="#" onclick="showSection('overview')">Dokumentasi</a> / Cara Mendaftar
+                </div>
+                <div class="page-header">
+                    <div class="page-badge">📝 Registrasi</div>
+                    <h1>Cara Mendaftar Akun Payzen</h1>
+                    <p>Proses pendaftaran Payzen memerlukan persetujuan admin. Setelah disetujui, kode perusahaan akan dikirim ke email Anda untuk login.</p>
+                </div>
+
+                <h2>Alur Pendaftaran</h2>
+
+                <div style="display:flex; flex-direction:column; gap:0; margin:20px 0;">
+                    <!-- Flow diagram -->
+                    <div style="display:flex; align-items:stretch; gap:0;">
+                        <div style="display:flex; flex-direction:column; align-items:center; width:48px; flex-shrink:0;">
+                            <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0;">1</div>
+                            <div style="width:2px;background:var(--border);flex:1;margin:4px 0;"></div>
+                        </div>
+                        <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:0 0 8px 12px;flex:1;">
+                            <h4 style="font-size:.95rem;font-weight:700;color:var(--dark);margin-bottom:4px;">Isi Form Pendaftaran di Aplikasi</h4>
+                            <p style="font-size:.875rem;color:var(--text-light);margin:0;">Buka aplikasi Payzen → ketuk <strong>Daftar</strong>. Isi data diri dan data usaha.</p>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:stretch; gap:0;">
+                        <div style="display:flex; flex-direction:column; align-items:center; width:48px; flex-shrink:0;">
+                            <div style="width:36px;height:36px;border-radius:50%;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0;">2</div>
+                            <div style="width:2px;background:var(--border);flex:1;margin:4px 0;"></div>
+                        </div>
+                        <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:0 0 8px 12px;flex:1;">
+                            <h4 style="font-size:.95rem;font-weight:700;color:var(--dark);margin-bottom:4px;">Menunggu Persetujuan Admin</h4>
+                            <p style="font-size:.875rem;color:var(--text-light);margin:0;">Pendaftaran berstatus <strong>Menunggu</strong>. Tim Payzen akan meninjau data Anda. Proses biasanya 1×24 jam.</p>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:stretch; gap:0;">
+                        <div style="display:flex; flex-direction:column; align-items:center; width:48px; flex-shrink:0;">
+                            <div style="width:36px;height:36px;border-radius:50%;background:#22c55e;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0;">3</div>
+                            <div style="width:2px;background:var(--border);flex:1;margin:4px 0;"></div>
+                        </div>
+                        <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:0 0 8px 12px;flex:1;">
+                            <h4 style="font-size:.95rem;font-weight:700;color:var(--dark);margin-bottom:4px;">Email Persetujuan Masuk</h4>
+                            <p style="font-size:.875rem;color:var(--text-light);margin:0;">Setelah disetujui, email berisi <strong>Kode Perusahaan</strong> dikirim ke alamat email yang Anda daftarkan. Simpan kode ini.</p>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:stretch; gap:0;">
+                        <div style="display:flex; flex-direction:column; align-items:center; width:48px; flex-shrink:0;">
+                            <div style="width:36px;height:36px;border-radius:50%;background:var(--dark2);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0;">4</div>
+                        </div>
+                        <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:0 0 0 12px;flex:1;">
+                            <h4 style="font-size:.95rem;font-weight:700;color:var(--dark);margin-bottom:4px;">Login dengan Kode Perusahaan</h4>
+                            <p style="font-size:.875rem;color:var(--text-light);margin:0;">Masukkan kode perusahaan di layar login, lalu email & password untuk masuk ke aplikasi.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h2>Langkah 1 — Isi Form Pendaftaran</h2>
+                <p>Buka aplikasi Payzen dan ketuk <strong>Daftar Sekarang</strong> di layar login. Isi semua kolom berikut:</p>
+
+                <h3>Data Pemilik</h3>
+                <table class="doc-table">
+                    <thead>
+                        <tr><th>Kolom</th><th>Keterangan</th><th>Wajib?</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Nama Lengkap</td><td>Nama pemilik usaha</td><td><span class="badge green">Wajib</span></td></tr>
+                        <tr><td>Email</td><td>Alamat email aktif — email persetujuan akan dikirim ke sini</td><td><span class="badge green">Wajib</span></td></tr>
+                        <tr><td>No. HP</td><td>Nomor WhatsApp/HP aktif</td><td><span class="badge gray">Opsional</span></td></tr>
+                        <tr><td>Password</td><td>Minimal 8 karakter</td><td><span class="badge green">Wajib</span></td></tr>
+                        <tr><td>Konfirmasi Password</td><td>Harus sama dengan password</td><td><span class="badge green">Wajib</span></td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Data Usaha</h3>
+                <table class="doc-table">
+                    <thead>
+                        <tr><th>Kolom</th><th>Keterangan</th><th>Wajib?</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Nama Usaha</td><td>Nama toko/bisnis Anda</td><td><span class="badge green">Wajib</span></td></tr>
+                        <tr><td>Jenis Usaha</td><td>Contoh: Retail, Kuliner, Apotek, Jasa</td><td><span class="badge gray">Opsional</span></td></tr>
+                        <tr><td>Alamat Usaha</td><td>Alamat lengkap lokasi usaha</td><td><span class="badge gray">Opsional</span></td></tr>
+                    </tbody>
+                </table>
+
+                <p>Setelah mengisi semua data, ketuk <strong>Daftar</strong>. Aplikasi akan menampilkan pesan konfirmasi bahwa pendaftaran sedang menunggu persetujuan.</p>
+
+                <h2>Langkah 2 — Proses Persetujuan Admin</h2>
+                <p>Tim Payzen akan meninjau data pendaftaran Anda. Selama proses ini berlangsung, akun Anda berstatus <span class="badge blue">Menunggu</span>.</p>
+
+                <div class="callout info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>Anda bisa cek status pendaftaran kapan saja lewat aplikasi: layar login → <strong>Cek Status Pendaftaran</strong> → masukkan email.</div>
+                </div>
+
+                <h2>Langkah 3 — Email Kode Perusahaan</h2>
+                <p>Setelah admin menyetujui pendaftaran, email otomatis akan dikirim ke alamat email Anda dengan konten:</p>
+
+                <div style="background:#fff;border:2px solid #22c55e;border-radius:14px;padding:24px;margin:16px 0;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+                        <div style="width:36px;height:36px;background:#22c55e;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.1rem;">✓</div>
+                        <div>
+                            <div style="font-weight:700;color:#166534;font-size:.95rem;">Selamat! Pendaftaran Disetujui!</div>
+                            <div style="font-size:.8rem;color:#6b7280;">Email dari: noreply@payzen.id</div>
+                        </div>
+                    </div>
+                    <p style="font-size:.875rem;color:var(--text);margin-bottom:12px;">Isi email berisi:</p>
+                    <ul style="font-size:.875rem;color:var(--text);margin:0 0 16px 20px;">
+                        <li>✅ Konfirmasi pendaftaran disetujui</li>
+                        <li>✅ <strong>Kode Perusahaan</strong> Anda (8 karakter huruf kapital, contoh: <code style="background:#f0fdf4;padding:2px 8px;border-radius:4px;font-weight:700;color:#166534;">ABCD1234</code>)</li>
+                        <li>✅ Nama bisnis & email akun</li>
+                        <li>✅ Panduan cara login ke aplikasi</li>
+                    </ul>
+                    <div style="background:#f0fdf4;border-radius:8px;padding:12px 16px;">
+                        <div style="font-size:.75rem;color:#6b7280;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;">Kode Perusahaan Anda</div>
+                        <div style="font-size:1.6rem;font-weight:800;color:#166534;letter-spacing:.15em;">ABCD1234</div>
+                    </div>
+                </div>
+
+                <div class="callout warning">
+                    <span class="callout-icon">⚠️</span>
+                    <div><strong>Penting:</strong> Simpan Kode Perusahaan ini dengan baik. Kode ini dibutuhkan setiap kali login ke aplikasi Payzen. Jika hilang, hubungi support untuk kirim ulang.</div>
+                </div>
+
+                <h2>Langkah 4 — Login ke Aplikasi</h2>
+                <p>Setelah menerima email persetujuan, Anda bisa langsung login:</p>
+                <div class="steps">
+                    <div class="step-card">
+                        <div class="step-num">1</div>
+                        <div class="step-body">
+                            <h4>Masukkan Kode Perusahaan</h4>
+                            <p>Di layar login aplikasi, masukkan <strong>Kode Perusahaan</strong> 8 karakter dari email. Sistem akan mengenali bisnis Anda secara otomatis.</p>
+                        </div>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-num">2</div>
+                        <div class="step-body">
+                            <h4>Masukkan Email & Password</h4>
+                            <p>Isi email dan password yang Anda daftarkan saat registrasi.</p>
+                        </div>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-num">3</div>
+                        <div class="step-body">
+                            <h4>Pilih Cabang</h4>
+                            <p>Jika memiliki lebih dari satu cabang, pilih cabang yang ingin Anda gunakan. Cabang pertama (<strong>Cabang Utama</strong>) dibuat otomatis oleh sistem.</p>
+                        </div>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-num">4</div>
+                        <div class="step-body">
+                            <h4>Siap Berjualan!</h4>
+                            <p>Aplikasi mengunduh data produk dan pengaturan. Setelah selesai, Anda akan diarahkan ke dashboard dan bisa langsung membuka shift.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h2>Jika Pendaftaran Ditolak</h2>
+                <p>Dalam beberapa kasus, pendaftaran dapat ditolak. Jika ini terjadi:</p>
+                <ul>
+                    <li>Email pemberitahuan dikirim ke email Anda dengan <strong>alasan penolakan</strong></li>
+                    <li>Anda bisa memperbaiki data dan mendaftar ulang</li>
+                    <li>Atau hubungi <a href="mailto:support@payzen.id" style="color:var(--primary);">support@payzen.id</a> untuk klarifikasi</li>
+                </ul>
+
+                <h2>Pertanyaan Umum Seputar Registrasi</h2>
+
+                <h3>Berapa lama proses persetujuan?</h3>
+                <p>Biasanya 1×24 jam di hari kerja (Senin–Sabtu). Jika lebih dari itu, hubungi support Payzen.</p>
+
+                <h3>Email persetujuan tidak masuk?</h3>
+                <p>Cek folder <strong>Spam / Junk</strong> di email Anda. Jika tidak ada, buka aplikasi → <strong>Cek Status Pendaftaran</strong> → masukkan email → jika status sudah <strong>Approved</strong>, ketuk <strong>Kirim Ulang Kode</strong> atau hubungi support.</p>
+
+                <h3>Kode Perusahaan lupa/hilang?</h3>
+                <p>Hubungi <a href="mailto:support@payzen.id" style="color:var(--primary);">support@payzen.id</a> atau WhatsApp support Payzen. Tim kami akan mengirimkan ulang kode ke email terdaftar.</p>
+
+                <h3>Bisakah mendaftar tanpa aplikasi?</h3>
+                <p>Saat ini pendaftaran dilakukan melalui aplikasi Android Payzen. Pastikan sudah menginstall aplikasi terlebih dahulu.</p>
+
+                <div style="margin-top: 32px;">
+                    <a href="#" onclick="showSection('login')" class="quick-link" style="max-width:300px;">
+                        <div class="ql-icon">🔑</div>
+                        <div class="ql-body">
+                            <h4>Panduan Login Selengkapnya →</h4>
+                            <p>Tier akun, fitur, dan manajemen akun</p>
+                        </div>
+                    </a>
                 </div>
             </div>
 
@@ -849,27 +1057,39 @@
                     <p>Panduan login, pengaturan profil bisnis, dan kelola akun Payzen Anda.</p>
                 </div>
 
+                <div class="callout info">
+                    <span class="callout-icon">📝</span>
+                    <div>Belum punya akun? <a href="#" onclick="showSection('register')" style="color:#1e40af;font-weight:600;">Lihat panduan mendaftar →</a> Kode Perusahaan diterima via email setelah disetujui admin.</div>
+                </div>
+
                 <h2>Cara Login</h2>
                 <div class="steps">
                     <div class="step-card">
                         <div class="step-num">1</div>
                         <div class="step-body">
-                            <h4>Buka Aplikasi Payzen</h4>
-                            <p>Tampilan pertama adalah layar login. Masukkan email dan password yang terdaftar.</p>
+                            <h4>Masukkan Kode Perusahaan</h4>
+                            <p>Buka aplikasi Payzen. Di layar login, masukkan <strong>Kode Perusahaan</strong> 8 karakter yang diterima via email saat pendaftaran disetujui (contoh: <code>ABCD1234</code>).</p>
                         </div>
                     </div>
                     <div class="step-card">
                         <div class="step-num">2</div>
                         <div class="step-body">
-                            <h4>Sinkronisasi Data</h4>
-                            <p>Setelah login berhasil, aplikasi akan menyinkronkan produk, pengaturan, dan data shift dari server. Proses ini membutuhkan koneksi internet hanya di awal.</p>
+                            <h4>Masukkan Email & Password</h4>
+                            <p>Isi email dan password yang Anda daftarkan saat registrasi.</p>
                         </div>
                     </div>
                     <div class="step-card">
                         <div class="step-num">3</div>
                         <div class="step-body">
-                            <h4>Mode Offline</h4>
-                            <p>Setelah data tersinkron, Anda bisa menggunakan aplikasi sepenuhnya tanpa internet. Transaksi disimpan di SQLite lokal dan disinkronkan saat online.</p>
+                            <h4>Sinkronisasi Data</h4>
+                            <p>Setelah login berhasil, aplikasi menyinkronkan produk, pengaturan, dan data shift dari server. Proses ini membutuhkan koneksi internet hanya di awal.</p>
+                        </div>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-num">4</div>
+                        <div class="step-body">
+                            <h4>Mode Offline Aktif</h4>
+                            <p>Setelah data tersinkron, aplikasi bisa digunakan sepenuhnya tanpa internet. Transaksi disimpan di SQLite lokal dan disinkronkan otomatis saat online kembali.</p>
                         </div>
                     </div>
                 </div>
