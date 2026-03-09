@@ -540,6 +540,7 @@
                 <a href="#cara-kerja">Cara Kerja</a>
                 <a href="#harga">Harga</a>
                 <a href="#testimoni">Testimoni</a>
+                <a href="/docs">Dokumentasi</a>
             </div>
 
             <div class="nav-cta">
@@ -1025,7 +1026,7 @@
             <div class="footer-col">
                 <h5>Bantuan</h5>
                 <ul>
-                    <li><a href="#">Dokumentasi</a></li>
+                    <li><a href="/docs">Dokumentasi</a></li>
                     <li><a href="mailto:support@payzen.id">Email Support</a></li>
                     <li><a href="/privacy-policy">Kebijakan Privasi</a></li>
                     <li><a href="#">Syarat &amp; Ketentuan</a></li>

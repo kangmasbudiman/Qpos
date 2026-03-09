@@ -15,3 +15,12 @@ Route::get('/display/{branchId}', [DisplayController::class, 'show'])
 Route::get('/privacy-policy', function () {
     return view('privacy_policy');
 });
+
+// Dokumentasi — publik
+Route::get('/docs', function () {
+    return view('docs');
+});
+
+Route::get('/docs/{section}', function ($section) {
+    return view('docs', ['activeSection' => $section]);
+});
